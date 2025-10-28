@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>slog install nixos</title>
+    <link rel="stylesheet" href="/index.css">
+</head>
+
+<body>
+    <header>
+        <h1>Installing NixOS impermanence with LUKS</h1>
+    </header>
+    <a href="..">go back</a>
+    <main>
+        <h2>What is impermanence?</h2>
+        <p>
+            <a href="https://github.com/nix-community/impermanence">This.</a> Basically because Nix is immutable and
+            declarative it can rebuild your system from scratch as long as it has the <code>/nix</code> directory. So
+            you can wipe your root filesystem and Nix will automatically regenerate everything.
+            It's useful to prevent bloat from accumulating on your computer since it's all wiped away when you restart.
+        </p>
+
+        <h2>Setup details</h2>
+        <p>
+            I'm using a LUKS encrypted partition with LVM. I have two LVM logical volumes:
+            An ext4 persistent filesystem for data that should not be deleted, and an
+            ext4 root filesystem (mounted at <code>/</code>) that gets wiped on restart.
+        </p>
+
+        <h2>Partition disks</h2>
+        <p>
+            Let's do it, and by it,.. haha well. lets justr say partitioning disks.
+            We want a boot partition and the rest of the space to be a LUKS partition.
+            I've got this installed on a VM using Oracle VBox which only supports legacy EFI so that's what I'll be
+            using.
+            The following is approximately the steps with fdisk:
+        </p>
+        <code>
+            <pre>
+    fdisk /dev/sdX
+    > o (MBR for legacy EFI)
+    > n (Create a 500MB boot partition named /dev/sdX1)
+
+    > n (Create the root partition named /dev/sdX2, just keep pressing enter)
+
+    > w (Write the changes)
+            </pre>
+        </code>
+
+        <h2>mkfs</h2>
+        <p>
+            Now we need to put a FAT filesystem on the boot partition
+        </p>
+        <code>
+            <pre>
+    mkfs.fat -F32 -L NIXOS_BOOT /dev/sdX1
+            </pre>
+        </code>
+        <p>
+            and add LUKS and LVM on the rest of the
+            drive.
+        </p>
+        <code>
+            <pre>
+    # Setup luks encrypt at /dev/mapper/cryptroot
+    cryptsetup --label=NIXOS_LUKS luksFormat /dev/sdX2
+    cryptsetup luksOpen /dev/sdX2 cryptroot
+
+    # Setup an LVM volume group named root_vg
+    pvcreate /dev/mapper/cryptroot
+    vgcreate root_vg /dev/mapper/cryptroot
+            </pre>
+        </code>
+
+        <p>
+            Then we'll create two ext4 filesystems, one for the ephemeral root that is wiped on reboot.
+        </p>
+        <code>
+            <pre>
+    lvcreate -L &lt;size&gt; -n root root_vg
+    mkfs.ext4 -L NIXOS_ROOT /dev/mapper/root_vg-root
+            </pre>
+        </code>
+
+        <p>
+            And one for the persistent storage that shouldn't be deleted.
+        </p>
+        <code>
+            <pre>
+    lvcreate -l +100%FREE -n persist root_vg
+    mkfs.ext4 -L NIXOS_PERSIST /dev/mapper/root_vg-persist
+            </pre>
+        </code>
+
+        <p>
+            Note how we are giving them filesystem labels. This will be useful later when managing our Nix
+            configurations.
+        </p>
+
+        <h2>Mounting the filesystems</h2>
+        <p>
+            Next we need to mount the filesystems.
+        </p>
+        <code>
+            <pre>
+    mkdir -p /mnt/{boot,persist}
+
+    mount /dev/disk/by-label/NIXOS_ROOT /mnt
+    mount /dev/disk/by-label/NIXOS_BOOT /mnt/boot
+    mount /dev/disk/by-label/NIXOS_PERSIST /mnt/persist
+            </pre>
+        </code>
+
+        <p>
+            But remember, Nix still needs the <code>/nix</code> directory to regenerate
+            properly, so we have to make it persistent. We can use bind mounts for this.
+        </p>
+        <code>
+            <pre>
+    mkdir -p /mnt/{persist,}/{nix,etc/nixos}
+    
+    mount --bind /mnt/persist/nix /mnt/nix
+    mount --bind /mnt/persist/etc/nixos /mnt/etc/nixos
+            </pre>
+        </code>
+        <p>
+            We mount <code>/persist/nix</code> to <code>/nix</code> so anything installed into <code>/nix</code> will be
+            persistent. For convenience we also mounted <code>/etc/nixos</code>. Although not strictly neccessary it
+            is nice that our configurations are persistent too.
+        </p>
+
+        <h2>Configurations</h2>
+        <p>
+            Now we can generate our <code>configuration.nix</code> and <code>hardware-configuration.nix</code>.
+        </p>
+        <code>
+            <pre>
+    nixos-generate-config --root /mnt
+            </pre>
+        </code>
+        <p>
+            There are still a few essential changes to be made to the configurations before we can run
+            <code>nixos-install</code>. Most can be found <a
+                href="https://nixos.wiki/wiki/NixOS_Installation_Guide#Create_NixOS_config">here</a> but we'll also need
+            to make a few more edits to support LUKS and to wipe our ephemeral storage on reboot.
+        </p>
+        <p>
+            First lets add the LUKS partition as a luks device. Make the following changes in
+            <code>hardware-configuration.nix</code>:
+        </p>
+        <code>
+            <pre>
+    boot.initrd.kernelModules = [ ... "cryptd" ]; # <-- add cryptd as a kernel module
+    boot.initrd.luks.devices.cryptroot.device = "/dev/disk/by-label/NIXOS_LUKS"; # <-- add luks device
+            </pre>
+        </code>
+        <p>
+            Then we need to mark the <code>/persist</code> directory as <code>neededForBoot</code> or else we won't be
+            able to boot.
+        </p>
+        <code>
+            <pre>
+    fileSystems."/persist" =
+        { device = "/dev/disk/by-label/NIXOS_PERSIST";
+          fsType = "ext4";
+          neededForBoot = true; # <-- add neededForBoot
+        };
+            </pre>
+        </code>
+
+        <p>
+            And finally we need to wipe the root filesystem on restart by adding the following configuration:
+        </p>
+        <code>
+            <pre>
+    boot.initrd.systemd = {
+        enable = true;
+        extraBin."mkfs.ext4" = "${pkgs.e2fsprogs}/bin/mkfs.ext4";
+        services.wipe-file-systems = {
+            description = "Wipe the root filesystem";
+            unitConfig.DefaultDependencies = false;
+            serviceConfig.Type = "oneshot";
+            requiredBy = [ "initrd.target" ];
+            before = [ "local-fs-pre.target" ];
+            after = [ "initrd-root-device.target" "systemd-hibernate-resume.service" ];
+            script = ''
+                mkfs.ext4 -F -L NIXOS_ROOT /dev/disk/by-label/NIXOS_ROOT
+            '';
+        };
+    };
+            </pre>
+        </code>
+        <p>
+            This adds a systemd service that wipes the filesystem by reformating the ext4 filesystem on root.
+            <code>mkfs.ext4</code> is not present in the initial ramdisk so it has to be added using
+            <code>extraBin</code>.
+        </p>
+
+        <h2>Install</h2>
+        <p>
+            Run <code>nixos install --root /mnt</code>.
+        </p>
+        <p>
+            and that's my setup! I've been thinking of using <a href="https://github.com/nix-community/disko/">disko</a>
+            which is a tool to handle the partitioning automatically. Although, I'm not sure if it's worth the hassle.
+        </p>
+    </main>
+</body>
+
+</html>
