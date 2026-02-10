@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog alloca</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+    <header>
+        <h1>alloca in Rust using inline ASM</h1>
+    </header>
+    <a href="index.html">go back</a>
+    <main>
+        <h2>inception</h2>
+        I wondered.. is it possible to allocate variable-size data on the stack?
+        Sure, you can't resize objects once they're allocated
+        because that would screw up the stack,
+        but why do you need to know the size of an object at compile-time?
+
+        You actually don't need to know the size at compile-time. You absolutely can allocate variable-size data on the
+        stack with your trusty <a href="https://www.man7.org/linux/man-pages/man3/alloca.3.html"><code>alloca</code></a>
+        function, nice! It works by remembering how much space was allocated and then when the time comes to deallocate,
+        you know exactly how much to pop.
+        But hold on, that function doesn't exist in the Rust std library!
+        There <i>is</i> <a href="https://docs.rs/alloca/latest/alloca/">a library</a>
+        that implements alloca in Rust but it just
+        links to C which is no fun. We want alloca in <b>Pure Rust™</b>.
+
+        <h2>learning asm</h2>
+
+        Here's what we're going to do. We're going to move the stack pointer down to allocate some space, and then we're
+        going to move the stack pointer back up to deallocate the space. Pretty crazy stuff right.
+
+        <code><pre>
+unsafe {
+    asm!("sub rsp, 8"); // allocate 8 bytes
+    // use the allocated data
+    asm!("add rsp, 8"); // deallocate 8 bytes
+}
+        </pre></code>
+
+        Looks good! Or does it... Let's read the Rust reference book, specifically
+        <a href="https://doc.rust-lang.org/reference/inline-assembly.html#r-asm.register-names.not-for-io">
+            the part for registers in inline assmebly.
+        </a>
+
+        <br><br><q>
+            The stack pointer must be restored to its original value at the end of the assembly code
+        </q><br><br>
+
+        <p>
+            Hmm, that's definitely going to be a problem. If you look back up at the code we wrote you can see the stack
+            pointer isn't restored after the end of the <code>asm!("sub rsp, 8")</code> block.
+            That's going to cause weird compiler bugs and undefined behaviour if we aren't careful.
+        </p>
+
+        Ok, but what if we just put it in one block.
+
+        <code><pre>
+unsafe {
+    let my_variable = 8;
+
+    asm!(
+        "add rsp, {size}",
+        "sub rsp, {size}",
+        size = in(reg) my_variable
+    )
+}
+        </pre></code>
+
+        <p>
+            Perfect! We're also passing in the size as value by specifying it as an input register instead of hardcoding
+            it as 8. Now we've allocated and deallocated stack memory, how do we actually use it? As soon as this block
+            exits, the stack memory is already deallocated, that's not very useful.
+        </p>
+
+        <p>
+            Let's call a function! We'll be using an <code>extern "C"</code> function which means the function uses the
+            C ABI and in the C ABI the first parameter is passed in the <code>rdi</code> register. We want to set the
+            first parameter to a pointer to the data we allocated.
+        </p>
+
+        <code><pre>
+unsafe {
+    let my_variable = 8;
+    
+    extern "C" fn my_function(ptr: *mut c_void) {}
+
+    asm! {
+        "sub rsp, {size}",
+        "mov rdi, rsp",             // added
+        "call {f}",                 // added
+        "add rsp, {size}",
+
+        size = in(reg) my_variable,
+        out("rdi") _,               // added
+        f = in(reg) my_function,    // added
+    }
+}
+        </pre></code>
+
+        <p>
+            After we subtract rsp, the stack pointer points to the data we allocated,
+            so we mov it to rdi and call the function.
+            At the bottom we use <code>out("rdi") _</code> to tell that compiler that we're
+            'clobbering' rdi by changing it's value, this prevents the compiler from doing optimizations that might
+            break
+            the code and then we pass the function in as an input register.
+        </p>
+
+        <h2>final thoughts</h2>
+
+        There's one detail I didn't cover and that's making alloca work for any closure and not just
+        <code>extern "C"</code> functions.
+        You can see the full source code <a href="https://github.com/ogghostjelly/alloca-shenanigans/">here</a>.
+        I made this a while ago but I thought I may aswell turn it into a blog post.
+    </main>
+</body>
+
+</html>
