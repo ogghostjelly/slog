@@ -5,7 +5,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>slog alloca</title>
-    <link rel="stylesheet" href="index.css">
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+        }
+
+        a:hover {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -14,15 +47,24 @@
     </header>
     <a href="index.html">go back</a>
     <main>
-        <h2>inception</h2>
-        I wondered.. is it possible to allocate variable-size data on the stack?
-        Sure, you can't resize objects once they're allocated
-        because that would screw up the stack,
-        but why do you need to know the size of an object at compile-time?
+        <p>
+            warning! this is an evolving document (well technically this entire site is but...). I'm still writing it
+            and it doesn't explain certain things very well. SORRY!
+        </p>
 
-        You actually don't need to know the size at compile-time. You absolutely can allocate variable-size data on the
+        <h2>inception</h2>
+        <p>
+            The stack is like a stack of plates. You can't change things in the middle or the
+            whole thing falls down and you need to know the size of the plates or else you won't know how much to
+            remove. So that's it then, we can't allocate data dynamically on the stack. We need to know the sizes...
+        </p>
+
+        I lied, you absolutely can allocate variable-size data on the
         stack with your trusty <a href="https://www.man7.org/linux/man-pages/man3/alloca.3.html"><code>alloca</code></a>
-        function, nice! It works by remembering how much space was allocated and then when the time comes to deallocate,
+        function, but no one really talks about it because it's <a
+            href="https://stackoverflow.com/questions/1018853/why-is-the-use-of-alloca-not-considered-good-practice">bad
+            practice</a>! It works by storing how much space was
+        allocated and then when the time comes to deallocate,
         you know exactly how much to pop.
         But hold on, that function doesn't exist in the Rust std library!
         There <i>is</i> <a href="https://docs.rs/alloca/latest/alloca/">a library</a>
@@ -32,7 +74,8 @@
         <h2>learning asm</h2>
 
         Here's what we're going to do. We're going to move the stack pointer down to allocate some space, and then we're
-        going to move the stack pointer back up to deallocate the space. Pretty crazy stuff right.
+        going to move the stack pointer back up to deallocate the space. Pretty crazy stuff right. (Remember the stack
+        grows downwards)
 
         <code><pre>
 unsafe {
@@ -42,18 +85,18 @@ unsafe {
 }
         </pre></code>
 
-        Looks good! Or does it... Let's read the Rust reference book, specifically
+        Looks good! Or does it... Let's look at the Rust reference book, specifically
         <a href="https://doc.rust-lang.org/reference/inline-assembly.html#r-asm.register-names.not-for-io">
             the part for registers in inline assmebly.
         </a>
 
         <br><br><q>
-            The stack pointer must be restored to its original value at the end of the assembly code
+            The stack pointer must be restored to its original value at the end of the <code>asm!</code> code block
         </q><br><br>
 
         <p>
             Hmm, that's definitely going to be a problem. If you look back up at the code we wrote you can see the stack
-            pointer isn't restored after the end of the <code>asm!("sub rsp, 8")</code> block.
+            pointer isn't restored at the end of the <code>asm!("sub rsp, 8")</code> block.
             That's going to cause weird compiler bugs and undefined behaviour if we aren't careful.
         </p>
 
@@ -64,21 +107,22 @@ unsafe {
     let my_variable = 8;
 
     asm!(
-        "add rsp, {size}",
         "sub rsp, {size}",
+        "add rsp, {size}",
         size = in(reg) my_variable
     )
 }
         </pre></code>
 
         <p>
-            Perfect! We're also passing in the size as value by specifying it as an input register instead of hardcoding
+            Perfect! We're also passing in the size by specifying it as an input register instead of hardcoding
             it as 8. Now we've allocated and deallocated stack memory, how do we actually use it? As soon as this block
             exits, the stack memory is already deallocated, that's not very useful.
         </p>
 
         <p>
-            Let's call a function! We'll be using an <code>extern "C"</code> function which means the function uses the
+            Let's make a function callback! We'll be using an <code>extern "C"</code> function which means the function
+            uses the
             C ABI and in the C ABI the first parameter is passed in the <code>rdi</code> register. We want to set the
             first parameter to a pointer to the data we allocated.
         </p>
@@ -96,8 +140,8 @@ unsafe {
         "add rsp, {size}",
 
         size = in(reg) my_variable,
-        out("rdi") _,               // added
         f = in(reg) my_function,    // added
+        clobber_abi("C"),           // added
     }
 }
         </pre></code>
@@ -105,10 +149,9 @@ unsafe {
         <p>
             After we subtract rsp, the stack pointer points to the data we allocated,
             so we mov it to rdi and call the function.
-            At the bottom we use <code>out("rdi") _</code> to tell that compiler that we're
-            'clobbering' rdi by changing it's value, this prevents the compiler from doing optimizations that might
-            break
-            the code and then we pass the function in as an input register.
+            At the bottom we use <code>clobber_abi("C")</code> to tell that compiler that we're
+            'clobbering' registers by changing their value, this prevents the compiler from doing optimizations that
+            might break the code and then we pass the function in as an input register.
         </p>
 
         <h2>final thoughts</h2>

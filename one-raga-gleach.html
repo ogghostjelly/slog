@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog one raga & gleach</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+        }
+
+        a:hover,
+        rainbow {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>One Raga to a Disco Beat & JALBUM GLEACH</h1>
+    </header>
+    <a href="index.html">go back</a>
+    <main>
+        <h2>GLEACH JALBUM</h2>
+
+        <p>
+            I really like this jalbum. It incorporates a lot of that <rainbow>messy</rainbow> emo style from casio dad &
+            kara's walk home that I adore. It has a lot of motifs to old gleach songs. <code>overture</code> having an
+            "All the Empathy" motif (I believe? I might be hearing things wrong). <code>kate said</code> obviously
+            having a yoshis
+            island motif. and I believe there was a bedroom community one that I missed. You can really feel the
+            visceral emotion oozing from the jalbum. the beginning of the jalbum was pretty jarring but I like jarring.
+            Favourite track: you are an angel (subject to change though, I never have a favourite track for long)
+        </p>
+
+        <iframe srcdoc="<p style='color: white;'>Loading...</p>" onload="this.removeAttribute('srcdoc')" width="560"
+            height="315" src="https://www.youtube.com/embed/Zdt7HhWRsds" title="YouTube video player" frameborder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+        <h2>One Raga to a Disco Beat</h2>
+        <p>
+            <img src="assets/absolutemusic.png">
+        </p>
+        <p>
+            <iframe srcdoc="<p style='color: white;'>Loading...</p>" onload="this.removeAttribute('srcdoc')" width="560"
+                height="315" src="https://www.youtube.com/embed/w_3hALBro5c" title="YouTube video player"
+                frameborder="0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+        </p>
+    </main>
+</body>
+
+</html>

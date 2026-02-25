@@ -5,7 +5,40 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>slog</title>
-    <link rel="stylesheet" href="index.css">
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+        }
+
+        a:hover {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
     <style>
         .post {
             background-color: lightblue;
@@ -23,7 +56,7 @@
 
         <div class="post">
             <p>
-                <a href="one-raga.html">One Raga to a Disco Beat</a>
+                <a href="one-raga-gleach.html">One Raga to a Disco Beat & GLEACH JALBUM</a>
             </p>
         </div>
         <div class="post">
@@ -45,16 +78,9 @@
         <a href="..">snap back to reality</a> oh there goes gravity.
 
         <p class="post">
-            if anyone knows a good <abbr title="Static Site Generator">SSG</abbr> that is highly customizable and allows
-            full control over the generated output; please tell me at
-            <a href="mailto:johnnycambodia09@gmail.com">&lt;johnnycambodia09@gmail.com&gt;</a>. I'm so tired
-            of writing HTML by hand but I don't want to touch any bLaZiNgLy fAsT js framework with a 5 foot pole and all
-            the other
-            <abbr title="Static Site Generator">SSG</abbr>s are too invasive and force me to "do it their way". Also I
-            need markdown preprocessing and SHTML (the one I made not SSI) doesn't have that... I. Don't. Want. To.
-            Write. HTML.
-            Please. Help.
-            Me.
+            I have decided that this slog will be pure HTML, CSS and NO JS. I think it'll be fun.
+            I have decided that <a href="repetition-is-good.html">repetition is good</a>. I will grow this website like
+            bacteria.
         </p>
     </footer>
 </body>
