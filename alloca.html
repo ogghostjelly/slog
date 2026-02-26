@@ -73,15 +73,17 @@
 
         <h2>learning asm</h2>
 
-        Here's what we're going to do. We're going to move the stack pointer down to allocate some space, and then we're
-        going to move the stack pointer back up to deallocate the space. Pretty crazy stuff right. (Remember the stack
-        grows downwards)
+        <p>
+            Here's what we're going to do. We're going to move the stack pointer down to allocate some space, and then
+            we're going to move the stack pointer back up to deallocate the space. Pretty crazy stuff right. (Remember
+            the stack grows downwards)
+        </p>
 
         <code><pre>
 unsafe {
-    asm!("sub rsp, 8"); // allocate 8 bytes
-    // use the allocated data
-    asm!("add rsp, 8"); // deallocate 8 bytes
+    asm!("sub rsp, 8"); // allocate 16 bytes
+    my_function();
+    asm!("add rsp, 8"); // deallocate 16 bytes
 }
         </pre></code>
 
@@ -96,70 +98,136 @@ unsafe {
 
         <p>
             Hmm, that's definitely going to be a problem. If you look back up at the code we wrote you can see the stack
-            pointer isn't restored at the end of the <code>asm!("sub rsp, 8")</code> block.
-            That's going to cause weird compiler bugs and undefined behaviour if we aren't careful.
+            pointer isn't restored at the end of the <code>asm!("sub rsp, 16")</code> block.
+            That's going to cause weird bugs and undefined behaviour if we aren't careful.
         </p>
 
         Ok, but what if we just put it in one block.
 
         <code><pre>
 unsafe {
-    let my_variable = 8;
-
     asm!(
-        "sub rsp, {size}",
-        "add rsp, {size}",
-        size = in(reg) my_variable
+        "sub rsp, 8",
+        "add rsp, 8",
     )
 }
         </pre></code>
 
         <p>
-            Perfect! We're also passing in the size by specifying it as an input register instead of hardcoding
-            it as 8. Now we've allocated and deallocated stack memory, how do we actually use it? As soon as this block
-            exits, the stack memory is already deallocated, that's not very useful.
+            Perfect! Now we've allocated and deallocated stack memory, but how do we actually use it?
+            As soon as the block exits, the stack memory is already deallocated, that's not very useful.
         </p>
 
         <p>
-            Let's make a function callback! We'll be using an <code>extern "C"</code> function which means the function
-            uses the
-            C ABI and in the C ABI the first parameter is passed in the <code>rdi</code> register. We want to set the
-            first parameter to a pointer to the data we allocated.
+            Let's make the assembly call a function! To call a function in assembly we can use the <code>call</code>
+            instruction.
         </p>
 
         <code><pre>
 unsafe {
-    let my_variable = 8;
-    
-    extern "C" fn my_function(ptr: *mut c_void) {}
+    extern "C" fn my_function() {}
 
     asm! {
-        "sub rsp, {size}",
-        "mov rdi, rsp",             // added
-        "call {f}",                 // added
-        "add rsp, {size}",
+        "sub rsp, 8",
+        "call {f}",
+        "add rsp, 8",
 
-        size = in(reg) my_variable,
-        f = in(reg) my_function,    // added
-        clobber_abi("C"),           // added
+        f = in(reg) my_function,
     }
 }
         </pre></code>
 
         <p>
-            After we subtract rsp, the stack pointer points to the data we allocated,
-            so we mov it to rdi and call the function.
-            At the bottom we use <code>clobber_abi("C")</code> to tell that compiler that we're
-            'clobbering' registers by changing their value, this prevents the compiler from doing optimizations that
-            might break the code and then we pass the function in as an input register.
+            We have to specify the function pointer as an input register with <code>f = in(reg) my_function</code>.
+            You can <a href="https://doc.rust-lang.org/reference/inline-assembly.html#operand-type">find more
+                information about setting input/output registers in the Rust reference book.</a>
+            But basically, you tell the compiler what the asm block receives with <code>in(reg)</code> and what it
+            returns with <code>out(reg)</code>.
+        </p>
+
+        <p>
+            Ok I lied (again), it isn't *that* easy to call a function in assembly. First of all, on certain CPU
+            architectures
+            the stack pointer has to be a multiple of 16 before we jump to a function. And second of all, we need to
+            tell the compiler what registers get 'clobbered'.
+        </p>
+
+        <p>
+            Since we are calling an <code>extern "C"</code> function, we are going to be clobbering any registers that
+            the <code>extern "C"</code> function would. We can tell the compiler that we are clobbering registers in a C
+            way with the <code>clobber_abi("C")</code> flag. Let's change the stack pointer to be a multiple of 16 too.
+        </p>
+
+        <code><pre>
+unsafe {
+    extern "C" fn my_function() {}
+
+    asm! {
+        "sub rsp, 16", // change to 16
+        "call {f}",
+        "add rsp, 16", // change to 16
+
+        f = in(reg) my_function,
+        clobber_abi("C"), // specify C ABI
+    }
+}
+        </pre></code>
+
+        <p>
+            Now we are correctly telling the compiler what registers get clobbered and we are ensuring the stack pointer
+            is a multiple of 16. Great!
+        </p>
+
+        <p>
+            There is still an issue though... we still can't use our allocated data! The function has no parameters! It
+            needs to take a pointer to the data we allocated so that we can use it.
+        </p>
+
+        <p>
+            In the C ABI the first parameter of a function is passed in the <code>rdi</code> register.
+            So let's set the <code>rdi</code> register to a pointer so that the function can use it.
+        </p>
+
+        <code><pre>
+unsafe {
+    extern "C" fn my_function(ptr: *mut c_void) {}
+
+    asm! {
+        "sub rsp, 16",
+        "mov rdi, rsp", // set first parameter to rsp
+        "call {f}",
+        "add rsp, 16",
+
+        f = in(reg) my_function,
+        clobber_abi("C"),
+    }
+}
+        </pre></code>
+
+        <p>
+            And that's it! Assembly is wildly unsafe, especially because Rust expects your program to "follow all the
+            rules".
+            There are likely tons of edge-cases I missed that would cause weird obscure <a
+                href="https://en.wikipedia.org/wiki/Heisenbug">heisenbugs</a>. I really wouldn't use
+            this in
+            production code but it is a fun exercise. I hope you learnt something reading this because I learnt a lot
+            making
+            it.
         </p>
 
         <h2>final thoughts</h2>
 
-        There's one detail I didn't cover and that's making alloca work for any closure and not just
-        <code>extern "C"</code> functions.
-        You can see the full source code <a href="https://github.com/ogghostjelly/alloca-shenanigans/">here</a>.
-        I made this a while ago but I thought I may aswell turn it into a blog post.
+        <p>
+            There's one detail I didn't cover and that's making alloca work for any closure and not just
+            <code>extern "C"</code> functions.
+            You can see the full source code <a href="https://github.com/ogghostjelly/alloca-shenanigans/">here</a>.
+            I made this a while ago but I thought I may aswell turn it into a blog post.
+        </p>
+
+        <p>
+            P.S If you find any of those aforementioned edge-cases that I missed, shoot me a message
+            <a href="mailto:johnnycambodia09@gmail.com">johnnycambodia09@gmail.com</a>
+        </p>
     </main>
 </body>
 
