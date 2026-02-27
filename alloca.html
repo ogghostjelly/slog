@@ -55,17 +55,15 @@
         <h2>inception</h2>
         <p>
             The stack is like a stack of plates. You can't change things in the middle or the
-            whole thing falls down and you need to know the size of the plates or else you won't know how much to
-            remove. So that's it then, we can't allocate data dynamically on the stack. We need to know the sizes...
+            whole thing falls down and you need to know the size of plates you want to
+            remove. Usually the sizes are known at compile-time, but we can store variable-size data on the stack by
+            keeping track of the size so we know how much to pop.
         </p>
 
-        I lied, you absolutely can allocate variable-size data on the
-        stack with your trusty <a href="https://www.man7.org/linux/man-pages/man3/alloca.3.html"><code>alloca</code></a>
-        function, but no one really talks about it because it's <a
+        In C there is an <a href="https://www.man7.org/linux/man-pages/man3/alloca.3.html"><code>alloca</code></a>
+        function that can allocate variable-size data, but no one really talks about it because it's <a
             href="https://stackoverflow.com/questions/1018853/why-is-the-use-of-alloca-not-considered-good-practice">bad
-            practice</a>! It works by storing how much space was
-        allocated and then when the time comes to deallocate,
-        you know exactly how much to pop.
+            practice</a>!
         But hold on, that function doesn't exist in the Rust std library!
         There <i>is</i> <a href="https://docs.rs/alloca/latest/alloca/">a library</a>
         that implements alloca in Rust but it just
@@ -81,9 +79,9 @@
 
         <code><pre>
 unsafe {
-    asm!("sub rsp, 8"); // allocate 16 bytes
+    asm!("sub rsp, 8"); // allocate 8 bytes
     my_function();
-    asm!("add rsp, 8"); // deallocate 16 bytes
+    asm!("add rsp, 8"); // deallocate 8 bytes
 }
         </pre></code>
 
@@ -98,7 +96,7 @@ unsafe {
 
         <p>
             Hmm, that's definitely going to be a problem. If you look back up at the code we wrote you can see the stack
-            pointer isn't restored at the end of the <code>asm!("sub rsp, 16")</code> block.
+            pointer isn't restored at the end of the <code>asm!("sub rsp, 8")</code> block.
             That's going to cause weird bugs and undefined behaviour if we aren't careful.
         </p>
 
@@ -146,10 +144,11 @@ unsafe {
         </p>
 
         <p>
-            Ok I lied (again), it isn't *that* easy to call a function in assembly. First of all, on certain CPU
+            Ok I lied, it isn't *that* easy to call a function in assembly. First of all, on certain CPU
             architectures
-            the stack pointer has to be a multiple of 16 before we jump to a function. And second of all, we need to
-            tell the compiler what registers get 'clobbered'.
+            the stack pointer has to be a multiple of 16 before we jump to a function (known as stack-alignment). And
+            second of all, we need to tell the compiler what registers our code modifies (known as register
+            clobbering).
         </p>
 
         <p>
