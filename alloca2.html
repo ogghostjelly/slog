@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog alloca</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+        }
+
+        a:hover {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>a new stack</h1>
+    </header>
+    <main>
+        <ul>
+            <li><a href="index.html">go back</a></li>
+            <li><a href="alloca.html">pt.1</a></li>
+            <li>pt.2 &lt;</li>
+        </ul>
+
+        <p>Did you <a href="debugger.html">write a debugger</a>? I highly suggested it...</p>
+
+        <h2>deception</h2>
+        <p>
+            In the previous episode of <a href="alloca.html">alloca shenanigans</a>, I said this.
+        </p>
+
+        <q>
+            The stack is like a stack of plates. You can't change things in the middle or the
+            whole thing falls down
+        </q>
+
+        <p>
+            I lied! Well... sort of. You see... the stack is just a bunch of bits, which means we don't have to treat
+            the stack like a stack at all! In this second episode of alloca shenanigans we'll be implementing a custom
+            data-structure in stack memory, which will allow us to resize things in the middle of the stack.
+            I'll end it in a grand crescendo where we implement a resizing hashmap in stack memory with a custom
+            programming language!
+        </p>
+
+        <p>
+            You can see <a href="http://github.com/ogghostjelly/stucker">the project on the Github</a>.
+        </p>
+
+        <h2>the structure</h2>
+
+        <p>
+            We will be using a list-like data-structure for our custom stack, each element will contain data
+            followed by the size of the
+            data. For example, a list with two elements will look like this:
+        </p>
+
+        <code><pre>
+    &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt; 3  &gt; &lt;DATA&gt; &lt; 1  &gt;
+                                            &UpArrow;
+                                           rsp</pre></code>
+
+        <p>
+            The stack pointer will point to the last element in the list.
+        </p>
+
+        <p></p>
+
+        <h2>implementation</h2>
+
+        <p>
+            We'll start off implementing our stack in assembly because assembly gives us that low-level control we need.
+            We need to write some primitives for stack allocation, <code>alloc</code>, <code>pop</code> and
+            <code>resize</code>.
+        </p>
+
+        <p>
+            Let's start off implementing <code>alloc</code> because it's the simplest.
+            Here is the Rust-like pseudo-code:
+        </p>
+
+        <code><pre>
+    fn alloc(size: u64) -> *const void {
+        // we need to allocate an extra 8 bytes to store the `size`
+        rsp -= size + 8;
+
+        // set the last 8 bytes to `size`
+        *rsp = size;
+
+        return rsp;
+    }
+        </pre></code>
+
+        <p>
+            And here it is in assembly. Because of our unique constraints, we generally aren't allowed to use
+            <code>call</code>, <code>push</code>, <code>pop</code> or any assembly instruction that modifies the stack.
+            Instead we can use <code>jmp</code> instructions and store the return address in a register.
+        </p>
+
+        <code><pre>
+    alloc:
+        ; allocate size bytes
+        sub rsp, rbx
+
+        ; set the last 8 bytes to size
+        sub rsp, 8
+        mov qword [rsp], rbx
+
+        ; jump back to the caller
+        jmp rax
+        </pre></code>
+
+        <p>
+            The return address is given in <code>rax</code> and the amount (in bytes) to allocate is given in
+            <code>rbx</code>.
+        </p>
+
+        <p>And here is the implementation for <code>pop</code>.</p>
+
+        <code><pre>
+    fn pop() {
+        let size = *rsp;
+        rsp -= size - 8;
+    }
+
+    pop:
+        add rsp, [rsp]
+        add rsp, 8
+        jmp rax
+        </pre></code>
+
+        <p>
+            Now, implementing <code>resize</code> is going to be a little more complicated. For the sake of brevity I'll
+            just show the pseudo-code, but you can imagine how this would translate to assembly.
+        </p>
+
+        <code><pre>
+    fn resize(ptr: *const void, amount: i64) {
+        // the stack moves downwards
+        // we start at i=rsp and move up to ptr
+        for (let i = rsp; i < ptr; i += 8) {
+            *(i - amount) = *i;
+        }
+
+        // update the size and rsp
+        let size = *ptr;
+        *(ptr - amount) = size + amount;
+        rsp -= amount;
+    }
+        </pre></code>
+
+        <p>
+            We'll start at <code>rsp</code> and move backwards
+            until we reach <code>ptr</code>. We'll move all the data we meet along the way down by the given
+            <code>amount</code>.
+        </p>
+
+        <code><pre>
+    &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
+                         &UpArrow;               &UpArrow;
+                        ptr             rsp                                                      
+        </pre></code>
+
+        <code><pre>
+    &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt;          &lt;DATA&gt; &lt;SIZE=1&gt;
+                         &UpArrow;               &UpArrow;
+                        ptr             rsp                                                      
+        </pre></code>
+
+        <p>Then we set the new size and update rsp.</p>
+
+        <code><pre>
+    &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=3&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
+                                &UpArrow;               &UpArrow;
+                           (ptr - amount)      rsp                                                      
+        </pre></code>
+
+        <p>
+            Nice! Dynamic stack memory! But, there is still one more issue, and that is pointers. If we
+            resize memory before a pointer, then everything get's pushed around and our pointer no longer points to the
+            right object. Oh No!
+        </p>
+
+        <code><pre>
+    &lt;DATA&gt; &lt;SIZE=1&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
+                                  &UpArrow;
+                                 ptr
+        </pre></code>
+
+        <code><pre>
+    &lt;DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;SIZE=4&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
+                                  &UpArrow;
+                            ptr (invalidated)
+        </pre></code>
+
+        <p>
+            The solution? Instead of storing the address of our data, we can
+            store the index. Then we can convert that index into an
+            address when we need to use it.
+        </p>
+
+        <p>
+            We can convert an index into an address by calculating how many steps backwards our data is from the end of
+            the stack with
+            <code>length - index - 1</code>. For example, if our stack has <code>3</code> elements and we want to find
+            the data at index
+            <code>1</code> we would need to move <code>3-1-1 = 1</code> steps backwards from the end of the stack. Here
+            is
+            the pseudo-code for converting an index into an
+            address.
+        </p>
+
+        <code><pre>
+    fn idx2addr(idx: u64) -> u64 {
+        let steps = length-idx-1;
+
+        let ptr = rsp;
+
+        for (let i = 0; i < steps; i++) {
+            let size = *ptr;
+            ptr -= size - 8;
+        }
+
+        return ptr;
+    }
+        </pre></code>
+
+        <p>
+            Note that this means we have to keep track of the length of our list in a register somewhere. Since we
+            aren't using <code>rbp</code> for anything else, I've designated <code>rbp</code> as our length register.
+            We'll update <code>alloc</code> and <code>pop</code> to increment/decrement <code>rbp</code>.
+            For deeply nested data-structures like <code>&arr[0][1][2]</code>, we'll have to store the reference as a
+            list of indicies. This means that references to deeply nested data-structures can get quite long but if we
+            were trying to be practical this entire project wouldn't exist, so who cares!
+        </p>
+
+        <p>
+            You can download an ASM code example <a href="alloca2-alloc-resize.asm">here</a>, but you may need an
+            <a href="debugger.html">exotic debugger</a> to be able to visualise how stack memory changes.
+        </p>
+
+        <h2>a language</h2>
+
+        <p>
+            We have an issue. Writing assembly is painful, but no language supports our funky stack, they all expect the
+            stack to behave in a certain
+            way. This is where the custom programming language comes in. It doesn't need to be
+            fancy, just a basic wrapper around assembly. Like C but for stack fuckery.
+        </p>
+
+        <p>
+            I'll be glossing over the whole "making a language" part in this blog post. I highly suggest you try
+            following <a href="http://github.com/kanaka/mal/">Make a Lisp</a> and <a
+                href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/">LLVM Kaleidoscope</a> if you're feeling
+            up for a challenge. They'll teach you a lot about writing your own languages.
+        </p>
+
+        <p>
+            For simplicity, I'll the language will compile to NASM assembly and I'll utilise NASM as the "back-bone"
+            that will generate the final binary.
+        </p>
+
+        <p>
+            First we'll write a tokenizer. It'll convert a stream of text like
+            <code>u32 inc(u32 a) { return a+1; }</code> into a list of tokens, like:
+        </p>
+        <code><pre>
+    [
+        Symbol("u32"), Symbol("inc"),
+        Operand("("), Symbol("u32"), Symbol("a"), Operand(")"),
+        Operand("{"),
+        Return, Symbol("a"), Operand("+"), Number(1), Operand(";"),
+        Operand("}"),
+    ]
+        </pre></code>
+
+        <p>
+            I used C-like syntax because C is familiar. Now we have a stream of tokens,
+            it'll make the next step a little bit easier.
+        </p>
+
+        <p>
+            We need to convert our stream of tokens into an abstract syntax tree (AST). For example, the abstract syntax
+            tree of <code>2+3*4</code> would look something like:
+        </p>
+
+        <code><pre>
+         Sym(+)
+         /   \
+        /     \
+       /       \
+    Num(2)    Sym(*)
+              /   \
+             /     \
+            /       \
+        Num(3)      Num(4)
+        </pre></code>
+
+        <p>
+            There is a
+            <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html#binary-expression-parsing">
+                section in LLVM Kaleidoscope
+            </a> about parsing "binary expressions", and the first part of <a
+                href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a>
+            shows how to implement a binary expression parser.
+            If you want to try this too and are a beginner, I highly suggest using a lisp-like
+            syntax since it is much easier to parse.
+        </p>
+
+        <p>
+            Now we have an AST that can represent function definitions, variable assignments,
+            expressions, and control flow operations (if, while, for). We need to write a code-generator that generates
+            our NASM assembly. It'll take in our AST and output NASM. Then we can call the <code>nasm</code> command
+            line tool directly to
+            compile it into a binary.
+        </p>
+
+        <p>
+            And of course, our code-generator will be generating assembly that utilises our funky stack.
+        </p>
+
+        <code><pre>
+    void main() {
+        add(1, 2)
+    }
+    
+    void add(u32 a, u32 b) {
+        a + b;
+    }
+        </pre></code>
+
+        <p>
+            Gets converted into:
+        </p>
+
+        <code><pre>
+    _start:
+        ; allocate 'a' on stack
+        lea rax, [_start_n0] ; return address
+        mov rbx, 4           ; amount to allocate
+        jmp alloc
+    _start_n0:
+        ; a = 1
+        mov dword [rsp+8], 1
+
+        ; allocate 'b' on stack
+        lea rax, [_start_n1] ; return address
+        mov rbx, 4           ; amount to allocate
+        jmp alloc
+    _start_n1:
+        ; b = 2
+        mov dword [rsp+8], 2
+        
+        lea rax, [_start_n2] ; return address
+        jmp add
+    _start_n2:
+        ; exit(1)
+        mov rax, 0
+        mov ebx, 1
+        int 0x80
+    
+    _add:
+        mov ebx, [rsp+8]
+        add ebx, [rsp+12]
+        jmp rax
+        </pre></code>
+
+        <p>
+            This part (making the language) is the most hardest part by far. Writing the hash-map is a cake walk in
+            comparison.
+        </p>
+
+        <h2>a cake walk (in comparison)</h2>
+
+        hash-maps are simple actually. Here is the pseudo-code:
+
+        <code><pre>
+        struct Bucket {
+            i32 key,
+            i32 value,
+        }
+
+        struct HashMap = []Bucket;
+
+        void hashmap_insert(&HashMap map, i32 key, i32 value) {
+            i = hashfunction(key) % map.size;
+
+            if (map[i].key == key or map[i].is_empty()) {
+                // if the key matches or the entry is empty.
+                // then insert!
+                map[i].key = key;
+                map[i].value = value;
+            } else {
+                // if the key doesn't match and the entry isn't empty.
+                // then we have a hash collision! let's resize the hashmap and try again.
+                hashmap_resize(map, map.size * 2);
+                hashmap_insert(map, key, value);
+            }
+        }
+        </pre></code>
+
+        <p>
+            <code>hashfunction(key) % map.size</code> gives us a random index inside of our hash-map based off of our
+            key.
+            If the entry at that index matches our key or is empty then we can insert it. If the entry doesn't match
+            that means that another item has the same hash, and we have a collision! When there is a collision we can
+            resize the hash-map and try insert again.
+        </p>
+
+        <p>The <code>hashmap_resize</code> function is just going to create a new hashmap and reinsert all the items:
+        </p>
+
+        <code><pre>
+        void hashmap_resize(&HashMap map) {
+            HashMap new_map = new HashMap();
+
+            for (i32 i = 0; i < map.size; i++) {
+                if (!map[i].is_empty()) {
+                    hashmap_insert(&new_map, map[i].key, map[i].value);
+                }
+            }
+
+            *map = new_map
+        }
+        </pre></code>
+
+        <p>
+            There are many different techniques that can avoid extra reallocation by
+            using adjacent slots or more "spread-out" hash functions. Honorable mention: <a
+                href="https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/">
+                Fibonacci Hashing</a>
+        </p>
+
+        <h2>Conclusion</h2>
+
+        <p>
+            That's it! This is the end of the post. Obviously, this is completely useless and no one would want to use a
+            stack like this because of the *awful* performance it gives. I mean look how many instructions a simple
+            stack allocation
+            takes... and oh god, the time complexity! It was fun
+            though!
+        </p>
+    </main>
+</body>
+
+</html>

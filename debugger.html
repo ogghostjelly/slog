@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog install nixos</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+        }
+
+        a:hover {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Writing your own Linux debugger in Rust<br>(it's easy!)</h1>
+    </header>
+    <a href="index.html">go back</a>
+    <main>
+        <p>I'm suggesting so highly rn.</p>
+
+        <h2>motivaption</h2>
+
+        <p>
+            Making your own debugger is criminally easy. For certain simple cases, it is much more complex to configure
+            an
+            existing debugger to work for you than it is to just write your own, and once you have your own debugger you
+            can easily modify it to work for new projects, since you understand all the code.
+        </p>
+
+        <p>
+            Most of this blog post consists of me telling you about cool <code>libc</code> functions. It is your job to
+            put them together into a debugger. You are encouraged to explore things by/for yourself.
+        </p>
+
+        <h2>aforementioned cool libc functions</h2>
+
+        <p>
+            These examples will be using the
+            <a href="https://crates.io/crates/nix"><code>nix</code></a> crate with the <code>ptrace</code>
+            feature enabled.
+        </p>
+
+        <h3>fork</h3>
+
+        <p>
+            <code><a href="https://www.man7.org/linux/man-pages/man2/fork.2.html">fork</a></code> is
+            simple. It duplicates the process. If you are now running as the parent, the child
+            process id is returned. If you are now running as the child, <code>0</code> is returned.
+        </p>
+
+        <code><pre>
+    use nix::libc::fork;
+
+    println!("Hello, World!");
+    
+    let pid = unsafe { fork() };
+    if pid == 0 {
+        println!("I am the child process (PID={pid})");
+    } else {
+        println!("I am the parent process (PID={pid})");
+    }
+        </pre></code>
+
+        <p>The console output will look something like this:</p>
+
+        <code><pre>
+    Hello, World!
+    I am the parent process (PID=172471)
+    I am the child process (PID=0)
+        </pre></code>
+
+        <h3>exec</h3>
+
+        <p>
+            There are <a href="https://www.man7.org/linux/man-pages/man3/exec.3.html">many exec</a>
+            functions but they all do the same thing. They all replace the current process with a new process.
+        </p>
+
+        <code><pre>
+    use nix::unistd::execve;
+
+    execve(c"/bin/echo", &[c"echo", c"Hi!"], &[c"HOME=/usr/home"])?;
+
+    unreachable!("exec never returns becaues it replaces the entire process");
+        </pre></code>
+
+        <p>The console output will look something like this:</p>
+
+        <code><pre>
+    Hi!
+        </pre></code>
+
+        <p>
+            <code>execl*</code> functions accept arguments variadic-ly. <code>execv*</code> functions accept arguments
+            as a list. <code>exec*e</code> functions allow you to set the environment variables of the new process.
+            <code>exec*p</code> functions will search for the program to be executed in the <code>PATH</code>
+            environment variable instead of requiring absolute paths.
+        </p>
+
+        <h3>waitpid</h3>
+
+        <p>
+            <code><a href="https://www.man7.org/linux/man-pages/man2/waitpid.2.html">waitpid</a></code>
+            waits for a process to change status, usually by a system interrupt. We can use this to wait for certain
+            events to fire.
+        </p>
+
+        <code><pre>
+    use nix::sys::wait::{WaitPidFlag, waitpid};
+
+    let status = waitpid(child_pid, Some(WaitPidFlag::WNOHANG))?;
+
+    if let WaitStatus::Stopped::Exited(_, _) = status {
+        println!("The process exited.");
+    }
+        </pre></code>
+
+        <h3>personality</h3>
+
+        <p>
+            <code><a href="https://www.man7.org/linux/man-pages/man2/personality.2.html">personality</a></code> sets a
+            bunch
+            of different execution options for the current process. We will be using the <code>ADDR_NO_RANDOMIZE</code>
+            flag to disable
+            <a href="https://en.wikipedia.org/wiki/Address_space_layout_randomization">ASLR</a>. This makes reading and
+            interpreting the addresses of functions much easier.
+
+            <code><pre>
+    use nix::libc::{ADDR_NO_RANDOMIZE, personality};
+
+    unsafe { personality(ADDR_NO_RANDOMIZE as u64) };
+            </pre></code>
+        </p>
+
+        <h3>ptrace</h3>
+
+        <p>
+            <code><a href="https://www.man7.org/linux/man-pages/man2/ptrace.2.html">ptrace</a></code> is the most
+            important function here. It's going to allow us to hook into our target program and start messing with it.
+            The child process will call <code>ptrace(PTRACE_TRACEME, ...)</code> which allows the parent process to
+            trace it.
+        </p>
+
+        <code><pre>
+    use nix::libc::fork;
+    use nix::sys::ptrace;
+    use nix::sys::wait::{WaitPidFlag, waitpid};
+    use nix::unistd::{Pid, execv};
+
+    let pid = unsafe { fork() };
+
+    if pid == 0 {
+        unsafe { personality(ADDR_NO_RANDOMIZE as u64) };
+        ptrace::traceme()?;
+        execv(c"/path/to/program", &[c"program"])?;
+    } else {
+        let child_pid = Pid::from_raw(pid);
+        _ = waitpid(child_pid, None)?;
+
+        // our tracer code goes here!
+
+        // for example:
+        let regs = ptrace::getregs(child_pid)?;
+        regs.rax = 0x12345;
+        ptrace::setregs(child_pid)?;
+        ptrace::cont(child_pid, None)?;
+    }
+        </pre></code>
+
+        <p>
+            There are much more useful ptrace functions. I'll list a few here that you might want to look into.
+        <ul>
+            <li>
+                <code>ptrace(PTRACE_CONT, ...)</code> -
+                resume execution of the tracee.
+            </li>
+            <li><code>ptrace(PTRACE_STEP, ...)</code> - resume exection but stop on the next instruction or system call
+                (configurable)</li>
+            <li><code>ptrace(PTRACE_GETREGS, ...)</code> - gets the registers of the tracee process</li>
+            <li><code>ptrace(PTRACE_SETREGS, ...)</code> - sets the registers of the tracee process</li>
+            <li><code>ptrace(PTRACE_PEEKDATA, ...)</code> - reads the memory of the tracee process</li>
+            <li><code>ptrace(PTRACE_POKEDATA, ...)</code> - writes the memory of the tracee process</li>
+        </ul>
+        </p>
+
+        <p>
+            The control flow when using ptrace usually goes something like this: The tracer will use
+            <code>waitpid</code> to wait
+            for the tracee to halt, the tracer will perform some calculation like displaying UI or modifying registers,
+            then the tracer will call
+            <code>ptrace::cont</code> or <code>ptrace::step</code> to continue execution.
+        </p>
+
+        <h2>moving on</h2>
+
+        <p>
+            Now our debugger is starting to take shape. We can hook into processes, read&write registers&memory, and
+            step through instructions. At this point, you already have your own debugger. Congratulations!
+            You did it! The rest of this blog post will just be showing you how to make it even better.
+        </p>
+
+        <p>
+            One small note. If you're reading the <code>objdump</code> of your binary and the instruction pointer
+            addresses aren't matching up, you may want to try
+            <code>rip - 0x5555_5555_4000</code>. This is because even though we disabled ASLR the kernel might decide to
+            offset your binary by a static base address. The offset number might not be <code>0x5555_5555_4000</code>
+            but that is most common.
+        </p>
+
+        <h2>breakpoints</h2>
+
+        <p>
+            Breakpoints are surprisingly hacky. Here's how they work. First, replace the instruction at the address of
+            the breakpoint with a system interrupt.
+        </p>
+
+        <code><pre>
+    let old_value = ptrace::read(child_pid, breakpoint_address)?;
+    // set the first byte to 0xCC
+    // 0xCC is the opcode for the INT3 system interrupt instruction.
+    let new_value = (old_value & !0xFF) | 0xCC;
+
+    ptrace::write(child_pid, breakpoint_address, new_value)?;
+        </pre></code>
+
+        <p>
+            Then wait until you hit that system interrupt.
+        </p>
+
+        <code><pre>
+    // continue execution and wait until we hit the system interrupt.
+    ptrace::cont(child_pid, None)?;
+    loop {
+        let status = waitpid(child_pid, None)?;
+
+        if let WaitStatus::Stopped(_, Signal::SIGTRAP) = status {
+            break;
+        }
+    }
+        </pre></code>
+
+        <p>
+            Then we can do whatever we want to that
+            particular breakpoint.
+        </p>
+
+        <code><pre>
+    println!("Breakpoint hit!");
+        </pre></code>
+
+        <p>
+            Once we're done and we want to continue execution,
+            we'll
+            need to restore the old instruction we replaced.
+        </p>
+
+        <code><pre>
+    // restore the instruction
+    ptrace::write(child_pid, breakpoint_address, old_value)?;
+        </pre></code>
+
+        <p>And move the instruction pointer back by one step, so we can re-execute the restored instruction.</p>
+
+        <code><pre>
+    // move the instruction pointer back one step
+    let mut regs = ptrace::getregs(child_pid)?;
+    regs.rip -= 1;
+    ptrace::setregs(child_pid, regs)?;
+        </pre></code>
+
+        <p>And continue execution.</p>
+
+        <code><pre>
+    ptrace::cont(child_pid, None)?;
+        </pre></code>
+
+        <p>You can refactor this into it's own little utility function to make things easier. Here is mine:</p>
+
+        <code><pre>
+    fn wait_until_addr(child_pid: Pid, breakpoint_address: *mut c_void) -> Result<(), Box<dyn std::error::Error>> {
+        let old_value = ptrace::read(child_pid, breakpoint_address)?;
+        // set the first byte to 0xCC
+        // 0xCC is the opcode for the INT3 system interrupt instruction.
+        let new_value = (old_value & !0xFF) | 0xCC;
+
+        ptrace::write(child_pid, breakpoint_address, new_value)?;
+
+        // continue execution and wait until we hit the system interrupt.
+        ptrace::cont(child_pid, None)?;
+        loop {
+            let status = waitpid(child_pid, None)?;
+
+            if let WaitStatus::Stopped(_, Signal::SIGTRAP) = status {
+                break;
+            }
+        }
+
+        // restore the instruction
+        ptrace::write(child_pid, breakpoint_address, old_value)?;
+
+        // move the instruction pointer back one step
+        let mut regs = ptrace::getregs(child_pid)?;
+        regs.rip -= 1;
+        ptrace::setregs(child_pid, regs)?;
+
+        Ok(())
+    }
+        </pre></code>
+
+        <p>Then you can use it like this:</p>
+
+        <code><pre>
+    wait_until_addr(child_pid, my_address_i_want_to_stop_at)?;
+
+    // do something
+
+    ptrace::cont(child_pid, None)?;
+        </pre></code>
+
+        <h2>symbols</h2>
+
+        <p>
+            Right now we're having to look at the raw addresses of things in our program. That's a huge pain. It'd be
+            nice if we could
+            extract the symbols out of an ELF binary and use it to see the names of everything.
+        </p>
+
+        <p>
+            You can use the <code><a href="http://crates.io/crates/elf">elf</a></code> Rust crate to parse ELF files. I
+            won't get into implementation details here but let's say we now magically have the symbol table. A mapping
+            of <code>u64</code> addresses to <code>String</code> names.
+        </p>
+
+        <p>
+            Remember that small note above? About things being offset by <code>0x5555_5555_4000</code>? We need to keep
+            this in mind when writing our code. But now we should be able to do the following:
+        </p>
+
+        <code><pre>
+    let rip = ptrace::getregs(child_pid)?.rip - 0x5555_5555_4000;
+
+    // Find the closest function that `rip` could be in.
+    for addr, name in symbol_table.sort_ascending() {
+        if rip > addr {
+            println!("We are inside the function: {name}");
+            break;
+        }
+    }
+        </pre></code>
+
+        <p>You can also use it to convert symbols to addresses.</p>
+
+        <code><pre>
+    wait_until_addr(child_pid, symbol_table.get("my_add_function"))?;
+        </pre></code>
+
+        <h2>conclusion</h2>
+
+        <p>
+            Writing your own debugger is easy and fun! That's the take-away of this blog post. You can just do things.
+        </p>
+
+        <p>
+            Here's a screenshot of my stack debugger I used extensively in my <a href="alloca.html">alloca
+                shenanigans</a> series.
+        </p>
+
+        <img src="assets/debugger.png">
+    </main>
+</body>
+
+</html>
