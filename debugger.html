@@ -63,13 +63,40 @@
             put them together into a debugger. You are encouraged to explore things by/for yourself.
         </p>
 
-        <h2>aforementioned cool libc functions</h2>
+        <h3>exec</h3>
 
         <p>
-            These examples will be using the
-            <a href="https://crates.io/crates/nix"><code>nix</code></a> crate with the <code>ptrace</code>
-            feature enabled.
+            First we want to be able to execute a program. This is pretty simple and to do this we'll use the
+            <code>exec</code> libc functions.
+            There are <a href="https://www.man7.org/linux/man-pages/man3/exec.3.html">many exec</a>
+            functions but they all replace the current process with a new process.
         </p>
+
+        <code><pre>
+    use nix::unistd::execv;
+
+    execv(c"/bin/echo", &[c"echo", c"Hi!"])?;
+
+    unreachable!();
+        </pre></code>
+
+        <p>The console output will look something like this:</p>
+
+        <code><pre>
+    Hi!
+        </pre></code>
+
+        <p>
+            <code>execl*</code> functions accept arguments variadic-ly. <code>execv*</code> functions accept arguments
+            as a list. <code>exec*e</code> functions allow you to set the environment variables of the new process.
+            <code>exec*p</code> functions will search for the program to be executed in the <code>PATH</code>
+            environment variable.
+        </p>
+
+        <p>
+            So now we can execute a program. Note the presence of that <code>unreachable!</code>
+            statement. Since <code>exec</code> replaces the entire process, any code after a call to it will never be
+            run!</p>
 
         <h3>fork</h3>
 
@@ -100,50 +127,88 @@
     I am the child process (PID=0)
         </pre></code>
 
-        <h3>exec</h3>
-
         <p>
-            There are <a href="https://www.man7.org/linux/man-pages/man3/exec.3.html">many exec</a>
-            functions but they all do the same thing. They all replace the current process with a new process.
+            Now we can pair <code>exec</code> and <code>fork</code> together to spawn a process.
         </p>
 
         <code><pre>
-    use nix::unistd::execve;
+    use nix::libc::fork;
+    use nix::unistd::execv;
 
-    execve(c"/bin/echo", &[c"echo", c"Hi!"], &[c"HOME=/usr/home"])?;
+    let pid = unsafe { fork() };
+    if pid == 0 {
+        execv(c"/bin/echo", &[c"echo", c"Hi from child!"])?;
+    } else {
+        println!("Hi from parent!");
+    }
 
-    unreachable!("exec never returns becaues it replaces the entire process");
+    println!("All done!");
         </pre></code>
 
         <p>The console output will look something like this:</p>
 
         <code><pre>
-    Hi!
+    Hi from parent!
+    Hi from child!
+    All done!
         </pre></code>
 
+        <h3>ptrace</h3>
+
         <p>
-            <code>execl*</code> functions accept arguments variadic-ly. <code>execv*</code> functions accept arguments
-            as a list. <code>exec*e</code> functions allow you to set the environment variables of the new process.
-            <code>exec*p</code> functions will search for the program to be executed in the <code>PATH</code>
-            environment variable instead of requiring absolute paths.
+            <code><a href="https://www.man7.org/linux/man-pages/man2/ptrace.2.html">ptrace</a></code> is the most
+            important function here. It's going to allow us to hook into our target program and start messing with it.
+            The child process will call <code>ptrace(PTRACE_TRACEME, ...)</code> which allows the parent process to
+            trace it.
         </p>
+
+        <code><pre>
+    use nix::libc::fork;
+    use nix::sys::ptrace;
+    use nix::unistd::execv;
+
+    let pid = unsafe { fork() };
+
+    if pid == 0 {
+        ptrace::traceme()?;
+        execv(c"/path/to/program", &[c"program"])?;
+    } else {
+        // run tracer functions
+    }
+        </pre></code>
+
+        <p>After a child process (tracee) has called <code>PTRACE_TRACEME</code> the parent process (tracer) can call
+            ptrace
+            functions to
+            inspect and manipulate the child.</p>
 
         <h3>waitpid</h3>
 
         <p>
             <code><a href="https://www.man7.org/linux/man-pages/man2/waitpid.2.html">waitpid</a></code>
             waits for a process to change status, usually by a system interrupt. We can use this to wait for certain
-            events to fire.
+            events to fire on our tracee.
+        </p>
+
+        <p>
+            After an event is fired, the tracee will be paused. The tracer has to unpause the tracee when it is done
+            processing the event.
         </p>
 
         <code><pre>
-    use nix::sys::wait::{WaitPidFlag, waitpid};
+    use nix::sys::ptrace;
+    use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
 
+    // wait for an event
     let status = waitpid(child_pid, Some(WaitPidFlag::WNOHANG))?;
 
-    if let WaitStatus::Stopped::Exited(_, _) = status {
+    // do some stuff
+    if let WaitStatus::Exited(_, _) = status {
         println!("The process exited.");
     }
+
+    // unpause tracee
+    ptrace::cont(child_pid, None)?;
         </pre></code>
 
         <h3>personality</h3>
@@ -163,19 +228,18 @@
             </pre></code>
         </p>
 
-        <h3>ptrace</h3>
+        <h3>example code</h3>
 
         <p>
-            <code><a href="https://www.man7.org/linux/man-pages/man2/ptrace.2.html">ptrace</a></code> is the most
-            important function here. It's going to allow us to hook into our target program and start messing with it.
-            The child process will call <code>ptrace(PTRACE_TRACEME, ...)</code> which allows the parent process to
-            trace it.
+            Let's make a program that waits for an event, sets the <code>rax</code> register to
+            <code>0x12345</code>,
+            and then continues execution of the tracee.
         </p>
 
         <code><pre>
-    use nix::libc::fork;
+    use nix::libc::{ADDR_NO_RANDOMIZE, fork, personality};
     use nix::sys::ptrace;
-    use nix::sys::wait::{WaitPidFlag, waitpid};
+    use nix::sys::wait::waitpid;
     use nix::unistd::{Pid, execv};
 
     let pid = unsafe { fork() };
@@ -185,15 +249,17 @@
         ptrace::traceme()?;
         execv(c"/path/to/program", &[c"program"])?;
     } else {
+        // wait for event
         let child_pid = Pid::from_raw(pid);
         _ = waitpid(child_pid, None)?;
+        // after event tracee is paused
 
-        // our tracer code goes here!
-
-        // for example:
-        let regs = ptrace::getregs(child_pid)?;
+        // set register
+        let mut regs = ptrace::getregs(child_pid)?;
         regs.rax = 0x12345;
-        ptrace::setregs(child_pid)?;
+        ptrace::setregs(child_pid, regs)?;
+
+        // unpause tracee (continue)
         ptrace::cont(child_pid, None)?;
     }
         </pre></code>

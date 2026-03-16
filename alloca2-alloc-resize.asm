@@ -3,15 +3,17 @@
     section .text
 
 _start:
+    xor rbp, rbp         ; zero rbp
+
     lea rax, [_start_n0] ; return address
-    mov rbx, 32          ; amount to allocate
+    mov rbx, 32+8        ; amount to allocate
     jmp alloc
 _start_n0:
     lea rax, [_start_n1]
     jmp pop
 _start_n1:
     lea rax, [_start_n2] ; return address
-    mov rbx, 32          ; amount to allocate
+    mov rbx, 32+8        ; amount to allocate
     jmp alloc
 _start_n2:
     mov qword [rsp+8], 0x1
@@ -22,13 +24,13 @@ _start_n2:
 
     ; allocate some garbage data to test out resize
     lea rax, [_start_n3] ; return address
-    mov rbx, 32          ; amount to allocate
+    mov rbx, 32+8        ; amount to allocate
     jmp alloc
 _start_n3:
     mov qword [rsp+8], 0x6
     mov qword [rsp+16], 0x7
     mov qword [rsp+24], 0x8
-    mov qword [rsp+32], 0x5
+    mov qword [rsp+32], 0x9
     
     lea rax, [_start_n4] ; return address
     mov rbx, rdi         ; ptr to
@@ -55,10 +57,11 @@ _start_n5:
 ; reg(rbx) = size
 alloc:
     ; allocate size bytes
-    sub rsp, rbx
     ; set the last 8 bytes to size
-    sub rsp, 8
+    sub rsp, rbx
     mov qword [rsp], rbx
+    ; increment rbp
+    inc rbp
     ; jump back to the caller
     jmp rax
 
@@ -67,7 +70,7 @@ alloc:
 ; reg(rax) = ret
 pop:
     add rsp, [rsp]
-    add rsp, 8
+    dec rbp
     jmp rax
 
 ; Resize a chunk of memory on the stack.
@@ -119,10 +122,6 @@ resize_loop_body:
     ; increment the pointer
     add rdx, 8
     jmp resize_loop_condition
-
-    jmp xyz\xyz
-
-xyz\xyz:
     
 
 ; Convert an index on the stack to an address
@@ -135,6 +134,7 @@ idx2addr:
     push rdx
 
     ; steps = length - index - 1
+    mov rdx, rbp
     sub rdx, rbx
     sub rdx, 1
 
@@ -151,9 +151,8 @@ idx2addr_loop_condition:
     jmp rax
 idx2addr_loop_body:
     ; move back one step
-    ; ptr -= size - 8
+    ; ptr -= *ptr
     add rcx, [rcx]
-    add rcx, 8
     ; steps -= 1
     sub rdx, 1
     jmp idx2addr_loop_condition

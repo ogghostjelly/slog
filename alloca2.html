@@ -52,11 +52,9 @@
             <li>pt.2 &lt;</li>
         </ul>
 
-        <p>Did you <a href="debugger.html">write a debugger</a>? I highly suggested it...</p>
-
         <h2>deception</h2>
         <p>
-            In the previous episode of <a href="alloca.html">alloca shenanigans</a>, I said this.
+            In the <a href="alloca.html">previous episode</a> of alloca shenanigans, I said this.
         </p>
 
         <q>
@@ -98,41 +96,21 @@
         <h2>implementation</h2>
 
         <p>
-            We'll start off implementing our stack in assembly because assembly gives us that low-level control we need.
+            We'll start off implementing our stack in assembly.
             We need to write some primitives for stack allocation, <code>alloc</code>, <code>pop</code> and
             <code>resize</code>.
         </p>
 
         <p>
             Let's start off implementing <code>alloc</code> because it's the simplest.
-            Here is the Rust-like pseudo-code:
-        </p>
-
-        <code><pre>
-    fn alloc(size: u64) -> *const void {
-        // we need to allocate an extra 8 bytes to store the `size`
-        rsp -= size + 8;
-
-        // set the last 8 bytes to `size`
-        *rsp = size;
-
-        return rsp;
-    }
-        </pre></code>
-
-        <p>
-            And here it is in assembly. Because of our unique constraints, we generally aren't allowed to use
-            <code>call</code>, <code>push</code>, <code>pop</code> or any assembly instruction that modifies the stack.
-            Instead we can use <code>jmp</code> instructions and store the return address in a register.
+            Here is the assembly code:
         </p>
 
         <code><pre>
     alloc:
         ; allocate size bytes
-        sub rsp, rbx
-
         ; set the last 8 bytes to size
-        sub rsp, 8
+        sub rsp, rbx
         mov qword [rsp], rbx
 
         ; jump back to the caller
@@ -140,21 +118,25 @@
         </pre></code>
 
         <p>
+            Because of our unique constraints, we generally aren't allowed to use
+            <code>call</code>, <code>push</code>, <code>pop</code> or any assembly instruction that modifies the stack.
+            Instead we can use <code>jmp</code> instructions and store the return address in a register.
+        </p>
+
+        <p>
             The return address is given in <code>rax</code> and the amount (in bytes) to allocate is given in
-            <code>rbx</code>.
+            <code>rbx</code>. Note the <code>mov qword</code> and how the last 8-bytes of the allocation are used for the size. The amount to allocate in <code>rbx</code> has to include an extra 8-bytes for the size tag.
         </p>
 
         <p>And here is the implementation for <code>pop</code>.</p>
 
         <code><pre>
     fn pop() {
-        let size = *rsp;
-        rsp -= size - 8;
+        rsp -= *rsp;
     }
 
     pop:
         add rsp, [rsp]
-        add rsp, 8
         jmp rax
         </pre></code>
 
@@ -213,7 +195,7 @@
         <code><pre>
     &lt;DATA&gt; &lt;SIZE=1&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
                                   &UpArrow;
-                                 ptr
+                            ptr (2nd item)
         </pre></code>
 
         <code><pre>
@@ -233,7 +215,7 @@
             the stack with
             <code>length - index - 1</code>. For example, if our stack has <code>3</code> elements and we want to find
             the data at index
-            <code>1</code> we would need to move <code>3-1-1 = 1</code> steps backwards from the end of the stack. Here
+            <code>1</code> we would need to move <code>3-1-1 = 1</code> step backwards from the end of the stack. Here
             is
             the pseudo-code for converting an index into an
             address.
@@ -241,13 +223,10 @@
 
         <code><pre>
     fn idx2addr(idx: u64) -> u64 {
-        let steps = length-idx-1;
-
         let ptr = rsp;
 
-        for (let i = 0; i < steps; i++) {
-            let size = *ptr;
-            ptr -= size - 8;
+        for (let i = 0; i < length-idx-1; i++) {
+            ptr -= *ptr;
         }
 
         return ptr;
@@ -259,8 +238,7 @@
             aren't using <code>rbp</code> for anything else, I've designated <code>rbp</code> as our length register.
             We'll update <code>alloc</code> and <code>pop</code> to increment/decrement <code>rbp</code>.
             For deeply nested data-structures like <code>&arr[0][1][2]</code>, we'll have to store the reference as a
-            list of indicies. This means that references to deeply nested data-structures can get quite long but if we
-            were trying to be practical this entire project wouldn't exist, so who cares!
+            list of indicies. This means that references to deeply nested data-structures can get quite long, but that's a sacrifice <a href="https://www.youtube.com/watch?v=hiKuxfcSrEU">I'm willing to make</a>.
         </p>
 
         <p>
@@ -279,20 +257,25 @@
 
         <p>
             I'll be glossing over the whole "making a language" part in this blog post. I highly suggest you try
-            following <a href="http://github.com/kanaka/mal/">Make a Lisp</a> and <a
-                href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/">LLVM Kaleidoscope</a> if you're feeling
+            following <a href="http://github.com/kanaka/mal/">Make a Lisp</a> and <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/">LLVM Kaleidoscope</a> if you're feeling
             up for a challenge. They'll teach you a lot about writing your own languages.
         </p>
 
-        <p>
-            For simplicity, I'll the language will compile to NASM assembly and I'll utilise NASM as the "back-bone"
-            that will generate the final binary.
-        </p>
+        <p>This is going to be quite difficult...</p>
 
         <p>
-            First we'll write a tokenizer. It'll convert a stream of text like
-            <code>u32 inc(u32 a) { return a+1; }</code> into a list of tokens, like:
+            For simplicity, the language will compile to NASM assembly. First we have a tokenizer. It'll convert a
+            stream of text like:
         </p>
+
+        <code><pre>
+    u32 inc(u32 a) {
+        return a+1;
+    }
+        </pre></code>
+
+        <p>Into a list of tokens, like:</p>
+
         <code><pre>
     [
         Symbol("u32"), Symbol("inc"),
@@ -304,7 +287,8 @@
         </pre></code>
 
         <p>
-            I used C-like syntax because C is familiar. Now we have a stream of tokens,
+            I decided to give the language C-like syntax because C is familiar and easy to parse. Now we have a stream
+            of tokens,
             it'll make the next step a little bit easier.
         </p>
 
@@ -329,8 +313,7 @@
             There is a
             <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html#binary-expression-parsing">
                 section in LLVM Kaleidoscope
-            </a> about parsing "binary expressions", and the first part of <a
-                href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a>
+            </a> about parsing "binary expressions", and the first part of <a href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a>
             shows how to implement a binary expression parser.
             If you want to try this too and are a beginner, I highly suggest using a lisp-like
             syntax since it is much easier to parse.
@@ -345,63 +328,164 @@
         </p>
 
         <p>
-            And of course, our code-generator will be generating assembly that utilises our funky stack.
+            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no
+            debugger works
+            because your stack is too fucked, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
+        </p>
+
+        <p>
+            Let's rewrite some of our assembly functions in our code-generator. For our <code>alloc</code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
         </p>
 
         <code><pre>
-    void main() {
-        add(1, 2)
+    struct Codegen {
+        stack_size: usize,
     }
     
-    void add(u32 a, u32 b) {
-        a + b;
+    fn alloc(codegen: &Codegen, size: u64) -> usize {
+        let idx = codegen.stack_size;
+        
+        // allocate size bytes
+        // set the last 8 bytes to size
+        write_asm!("sub rsp, {size}");
+        write_asm!("sub qword [rsp], {size}");
+        codegen.stack_size += 1;
+
+        return idx;
+    }
+        </pre></code>
+
+        <p>And the <code>pop</code> function follows in the same vein.</p>
+
+        <code><pre>
+    fn pop(codegen: &Codegen) {
+        write_asm!("sub qword [rsp], {size}");
+        codegen.stack_size -= 1;
+    }
+        </pre></code>
+
+        <p>Then we can implement our <code>idx2addr</code> function. It will take in an index and return the address in a register.</p>
+
+        <code><pre>
+    fn idx2addr(codegen: &Codegen, idx: usize, reg: &str) {
+        write_asm!("mov {reg}, rsp");
+
+        for (let i = 0; i < codegen.stack_size-idx-1; i++) {
+            write_asm!("add {reg}, [{reg}]");
+        }
     }
         </pre></code>
 
         <p>
-            Gets converted into:
+            Now we can start with code-generating a simple number. We'll need to allocate some space on the stack and then put that number in it.
+        </p>
+
+        <code><pre>
+    fn codegen_number(codegen: &Codegen, number: Number) -> usize {
+        let idx = codegen.alloc(16);
+        codegen.idx2addr(idx, "rbx");
+        write_asm!("mov qword [rbx], {number}");
+        return idx;
+    }
+        </pre></code>
+
+        <p>
+            Now let's codegen an add function.
+        </p>
+
+        <code><pre>
+    fn codegen_add(codegen: &Codegen, a: Expression, b: Expression) -> usize {
+        // codegen the expressions
+        let a = codegen.codegen_expression(a);
+        let b = codegen.codegen_expression(b);
+
+        // dereference the indicies
+        codegen.idx2addr(a, "rbx");
+        codegen.idx2addr(b, "mov qword [rsp], 16");
+        write_asm!("mov rbx, [rbx+8]");
+        write_asm!("mov rcx, [rcx+8]");
+
+        // add the numbers
+        write_asm!("add rbx, rcx");
+
+        // allocate the result
+        let idx = codegen.alloc(16);
+        codegen.idx2addr(idx, "rdx");
+        write_asm!("mov qword [rdx], rbx");
+
+        return idx;
+    }
+        </pre></code>
+
+        <p>Now we'll write the expression generator.</p>
+
+        <code><pre>
+    fn codegen_expression(codegen: &Codegen, expression: Expression) -> usize {
+        match expression {
+            Number(num) => codegen.codegen_number(num),
+            Add(a, b) => codegen.codegen_add(a, b),
+        }
+    }
+        </pre></code>
+
+        <p>And from here it's easy to imagine how the rest of the language was implemented.</p>
+
+        <p>
+            Of course, our code-generator will be generating assembly that utilises our funky stack.
+        </p>
+
+        <code><pre>
+    void main() {
+        1 + 2;
+    }
+        </pre></code>
+
+        <p>
+            Gets converted roughly into:
         </p>
 
         <code><pre>
     _start:
         ; allocate 'a' on stack
-        lea rax, [_start_n0] ; return address
-        mov rbx, 4           ; amount to allocate
-        jmp alloc
-    _start_n0:
-        ; a = 1
-        mov dword [rsp+8], 1
+        sub rsp, 16
+        mov qword [rsp], 16
+        mov qword [rsp+8], 1
 
         ; allocate 'b' on stack
-        lea rax, [_start_n1] ; return address
-        mov rbx, 4           ; amount to allocate
-        jmp alloc
-    _start_n1:
-        ; b = 2
-        mov dword [rsp+8], 2
-        
-        lea rax, [_start_n2] ; return address
-        jmp add
-    _start_n2:
+        sub rsp, 16
+        mov qword [rsp], 16
+        mov qword [rsp+8], 2
+
+        ; dereference indicies
+        mov rbx, rsp
+        mov rcx, rsp
+        add rcx, [rcx]
+
+        mov rbx, [rbx+8]
+        mov rcx, [rcx+8]
+
+        ; add numbers
+        add rbx, rcx
+
+        ; allocate result on the stack
+        sub rsp, 16
+        mov qword [rsp], 16
+        mov qword [rsp+8], rbx
+
         ; exit(1)
         mov rax, 0
         mov ebx, 1
         int 0x80
-    
-    _add:
-        mov ebx, [rsp+8]
-        add ebx, [rsp+12]
-        jmp rax
         </pre></code>
 
         <p>
-            This part (making the language) is the most hardest part by far. Writing the hash-map is a cake walk in
+            This part (making the language) was the most hardest part by far. Writing the hash-map is a cake walk in
             comparison.
         </p>
 
         <h2>a cake walk (in comparison)</h2>
 
-        hash-maps are simple actually. Here is the pseudo-code:
+        hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. We check for a hash collision and if there was, resize the array. If there wasn't just insert. Here is the pseudo-code:
 
         <code><pre>
         struct Bucket {
@@ -412,7 +496,8 @@
         struct HashMap = []Bucket;
 
         void hashmap_insert(&HashMap map, i32 key, i32 value) {
-            i = hashfunction(key) % map.size;
+            // get a random index
+            u64 i = hashfunction(key) % map.size;
 
             if (map[i].key == key or map[i].is_empty()) {
                 // if the key matches or the entry is empty.
@@ -427,14 +512,6 @@
             }
         }
         </pre></code>
-
-        <p>
-            <code>hashfunction(key) % map.size</code> gives us a random index inside of our hash-map based off of our
-            key.
-            If the entry at that index matches our key or is empty then we can insert it. If the entry doesn't match
-            that means that another item has the same hash, and we have a collision! When there is a collision we can
-            resize the hash-map and try insert again.
-        </p>
 
         <p>The <code>hashmap_resize</code> function is just going to create a new hashmap and reinsert all the items:
         </p>
@@ -455,8 +532,7 @@
 
         <p>
             There are many different techniques that can avoid extra reallocation by
-            using adjacent slots or more "spread-out" hash functions. Honorable mention: <a
-                href="https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/">
+            using adjacent slots or more "spread-out" hash functions. Honorable mention: <a href="https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/">
                 Fibonacci Hashing</a>
         </p>
 

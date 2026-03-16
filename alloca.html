@@ -60,18 +60,26 @@
         <p>
             The stack is like a stack of plates. You can't change things in the middle or the
             whole thing falls down and you need to know the size of plates you want to
-            remove. Usually the sizes are known at compile-time, but we can store variable-size data on the stack by
-            keeping track of the size so we know how much to pop.
+            remove.
         </p>
 
-        In C there is an <a href="https://www.man7.org/linux/man-pages/man3/alloca.3.html"><code>alloca</code></a>
-        function that can allocate variable-size data, but no one really talks about it because it's <a
-            href="https://stackoverflow.com/questions/1018853/why-is-the-use-of-alloca-not-considered-good-practice">bad
-            practice</a>!
-        But hold on, that function doesn't exist in the Rust std library!
-        There <i>is</i> <a href="https://docs.rs/alloca/latest/alloca/">a library</a>
-        that implements alloca in Rust but it just
-        links to C which is no fun. We want alloca in <b>Pure Rust™</b>.
+        <p>
+            Usually the compiler ensures that the sizes are known at compile-time, but we can store variable-size data on the stack by
+            keeping track of the size at runtime so we know how much to pop.
+        </p>
+
+        <p>
+            In C there is an <a href="https://www.man7.org/linux/man-pages/man3/alloca.3.html"><code>alloca</code></a>
+            function that can allocate variable-size data, but no one really talks about it because it's <a href="https://stackoverflow.com/questions/1018853/why-is-the-use-of-alloca-not-considered-good-practice">bad
+                practice</a>!
+        </p>
+
+        <p>
+            But hold on, that function doesn't exist in the Rust std library!
+            There <i>is</i> <a href="https://docs.rs/alloca/latest/alloca/">a library</a>
+            that implements alloca in Rust but it just
+            links to C which is no fun. We want alloca in <b>Pure Rust™</b>.
+        </p>
 
         <h2>learning asm</h2>
 
@@ -84,7 +92,7 @@
         <code><pre>
 unsafe {
     asm!("sub rsp, 8"); // allocate 8 bytes
-    my_function();
+    do_some_stuff();
     asm!("add rsp, 8"); // deallocate 8 bytes
 }
         </pre></code>
@@ -210,8 +218,7 @@ unsafe {
         <p>
             And that's it! Assembly is wildly unsafe, especially because Rust expects your program to "follow all the
             rules".
-            There are likely tons of edge-cases I missed that would cause weird obscure <a
-                href="https://en.wikipedia.org/wiki/Heisenbug">heisenbugs</a>. I really wouldn't use
+            There are likely tons of edge-cases I missed that would cause weird obscure <a href="https://en.wikipedia.org/wiki/Heisenbug">heisenbugs</a>. I really wouldn't use
             this in
             production code but it is a fun exercise. I hope you learnt something reading this because I learnt a lot
             making
