@@ -8,7 +8,7 @@
     <style>
         body {
             background-color: rgb(5, 5, 10);
-            color: rgb(240, 220, 200);
+            color: rgb(223, 223, 223);
             font-family: Verdana, Geneva, Tahoma, sans-serif;
             margin: 8%;
         }
@@ -38,6 +38,52 @@
                 background-position: 100% 0;
             }
         }
+
+        tok[type=operand] {
+            color: turquoise;
+        }
+
+        tok[type=operand][o="("],
+        tok[type=operand][o=")"] {
+            color: lightyellow;
+        }
+
+        tok[type=operand][o="}"],
+        tok[type=operand][o="{"] {
+            color: lightcyan;
+        }
+
+        tok[type=operand][o="&"] {
+            color: yellow;
+        }
+
+        tok[type=function] {
+            color: cyan;
+        }
+
+        tok[type=type] {
+            color: pink;
+        }
+
+        tok[type=symbol] {
+            color: lightgray;
+        }
+
+        tok[type=keyword] {
+            color: purple;
+        }
+
+        tok[type=number] {
+            color: gold;
+        }
+
+        tok[type=comment] {
+            color: gray;
+        }
+
+        tok[type=string] {
+            color: greenyellow;
+        }
     </style>
 </head>
 
@@ -47,8 +93,8 @@
     </header>
     <main>
         <ul>
-            <li><a href="index.html">go back</a></li>
-            <li><a href="alloca.html">pt.1</a></li>
+            <li><a href="../index.html">go back</a></li>
+            <li><a href="../alloca.html">pt.1</a></li>
             <li>pt.2 &lt;</li>
         </ul>
 
@@ -84,7 +130,7 @@
 
         <code><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt; 3  &gt; &lt;DATA&gt; &lt; 1  &gt;
-                                            &UpArrow;
+                                            ↑
                                            rsp</pre></code>
 
         <p>
@@ -106,7 +152,7 @@
             Here is the assembly code:
         </p>
 
-        <code><pre>
+        <code lang="nasm"><pre>
     alloc:
         ; allocate size bytes
         ; set the last 8 bytes to size
@@ -130,11 +176,12 @@
 
         <p>And here is the implementation for <code>pop</code>.</p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn pop() {
         rsp -= *rsp;
     }
-
+        </pre></code>
+        <code lang="nasm"><pre>
     pop:
         add rsp, [rsp]
         jmp rax
@@ -145,7 +192,7 @@
             just show the pseudo-code, but you can imagine how this would translate to assembly.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn resize(ptr: *const void, amount: i64) {
         // the stack moves downwards
         // we start at i=rsp and move up to ptr
@@ -168,13 +215,13 @@
 
         <code><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                         &UpArrow;               &UpArrow;
+                         ↑               ↑
                         ptr             rsp                                                      
         </pre></code>
 
         <code><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt;          &lt;DATA&gt; &lt;SIZE=1&gt;
-                         &UpArrow;               &UpArrow;
+                         ↑               ↑
                         ptr             rsp                                                      
         </pre></code>
 
@@ -182,7 +229,7 @@
 
         <code><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=3&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                &UpArrow;               &UpArrow;
+                                ↑               ↑
                            (ptr - amount)      rsp                                                      
         </pre></code>
 
@@ -194,13 +241,13 @@
 
         <code><pre>
     &lt;DATA&gt; &lt;SIZE=1&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                  &UpArrow;
+                                  ↑
                             ptr (2nd item)
         </pre></code>
 
         <code><pre>
     &lt;DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;SIZE=4&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                  &UpArrow;
+                                  ↑
                             ptr (invalidated)
         </pre></code>
 
@@ -221,7 +268,7 @@
             address.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn idx2addr(idx: u64) -> u64 {
         let ptr = rsp;
 
@@ -242,7 +289,7 @@
         </p>
 
         <p>
-            You can download an ASM code example <a href="alloca2-alloc-resize.asm">here</a>, but you may need an
+            You can download an ASM code example <a href="alloca2/example.asm">here</a>, but you may need an
             <a href="debugger.html">exotic debugger</a> to be able to visualise how stack memory changes.
         </p>
 
@@ -268,7 +315,7 @@
             stream of text like:
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     u32 inc(u32 a) {
         return a+1;
     }
@@ -276,7 +323,7 @@
 
         <p>Into a list of tokens, like:</p>
 
-        <code><pre>
+        <code lang="c"><pre>
     [
         Symbol("u32"), Symbol("inc"),
         Operand("("), Symbol("u32"), Symbol("a"), Operand(")"),
@@ -297,7 +344,7 @@
             tree of <code>2+3*4</code> would look something like:
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
          Sym(+)
          /   \
         /     \
@@ -337,7 +384,7 @@
             Let's rewrite some of our assembly functions in our code-generator. For our <code>alloc</code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     struct Codegen {
         stack_size: usize,
     }
@@ -357,7 +404,7 @@
 
         <p>And the <code>pop</code> function follows in the same vein.</p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn pop(codegen: &Codegen) {
         write_asm!("sub qword [rsp], {size}");
         codegen.stack_size -= 1;
@@ -366,7 +413,7 @@
 
         <p>Then we can implement our <code>idx2addr</code> function. It will take in an index and return the address in a register.</p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn idx2addr(codegen: &Codegen, idx: usize, reg: &str) {
         write_asm!("mov {reg}, rsp");
 
@@ -380,7 +427,7 @@
             Now we can start with code-generating a simple number. We'll need to allocate some space on the stack and then put that number in it.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn codegen_number(codegen: &Codegen, number: Number) -> usize {
         let idx = codegen.alloc(16);
         codegen.idx2addr(idx, "rbx");
@@ -393,7 +440,7 @@
             Now let's codegen an add function.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn codegen_add(codegen: &Codegen, a: Expression, b: Expression) -> usize {
         // codegen the expressions
         let a = codegen.codegen_expression(a);
@@ -419,7 +466,7 @@
 
         <p>Now we'll write the expression generator.</p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn codegen_expression(codegen: &Codegen, expression: Expression) -> usize {
         match expression {
             Number(num) => codegen.codegen_number(num),
@@ -434,7 +481,7 @@
             Of course, our code-generator will be generating assembly that utilises our funky stack.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     void main() {
         1 + 2;
     }
@@ -444,7 +491,7 @@
             Gets converted roughly into:
         </p>
 
-        <code><pre>
+        <code lang="nasm"><pre>
     _start:
         ; allocate 'a' on stack
         sub rsp, 16
@@ -487,7 +534,7 @@
 
         hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. We check for a hash collision and if there was, resize the array. If there wasn't just insert. Here is the pseudo-code:
 
-        <code><pre>
+        <code lang="c"><pre>
         struct Bucket {
             i32 key,
             i32 value,
@@ -516,7 +563,7 @@
         <p>The <code>hashmap_resize</code> function is just going to create a new hashmap and reinsert all the items:
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
         void hashmap_resize(&HashMap map) {
             HashMap new_map = new HashMap();
 
