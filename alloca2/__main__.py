@@ -4,7 +4,7 @@
 # Reads the template file from `index.template.html` and outputs to `index.html`
 # applys syntax highlighting to <code> blocks.
 
-import bs4
+import bs4, random
 
 class Tokenizer:
     def __init__(self, lang: str, inp: str) -> None:
@@ -24,12 +24,16 @@ class Tokenizer:
         
         if self.lang == "c":
             return self.next_c()
-        if self.lang == "nasm":
+        if self.lang == "nasm" or self.lang == "simple":
             return self.next_nasm()
+        if self.lang == "rainbow":
+            return self.next_rainbow()
         
         tok = { "value": self.input, "type": None }
         self.input = ""
         return tok
+    def next_rainbow(self) -> str:
+        return { "value": self.pop(), "type": random.choice(["comment", "number", "symbol", "string", "type", "operand"]) }
     def next_nasm(self) -> str:
         if self.input.startswith(";"):
             return { "value": self.take_while(lambda ch: ch != '\n'), "type": 'comment' }
@@ -109,6 +113,7 @@ def wraptag(bs, tag, text):
     e: bs4.Tag = bs.new_tag("tok")
     e.attrs["type"] = tag
     if tag == "operand": e.attrs["o"] = text
+    if tag == "symbol" and text.istitle(): e.attrs["titlecase"] = None
     e.append(bs4.NavigableString(text))
     return e
 

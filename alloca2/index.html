@@ -70,6 +70,10 @@
             color: lightgray;
         }
 
+        tok[type=symbol][titlecase] {
+            color: lightblue;
+        }
+
         tok[type=keyword] {
             color: purple;
         }
@@ -121,10 +125,10 @@
             followed by the size of the
             data. For example, a list with two elements will look like this:
         </p>
-<code><pre>
-    &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt; 3  &gt; &lt;DATA&gt; &lt; 1  &gt;
-                                            ↑
-                                           rsp</pre></code>
+<code lang="simple"><pre>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="number">3</tok>  <tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="number">1</tok>  <tok o="&gt;" type="operand">&gt;</tok>
+                                            <tok o="↑" type="operand">↑</tok>
+                                           <tok type="symbol">rsp</tok></pre></code>
 <p>
             The stack pointer will point to the last element in the list.
         </p>
@@ -192,36 +196,36 @@
             until we reach <code>ptr</code>. We'll move all the data we meet along the way down by the given
             <code>amount</code>.
         </p>
-<code><pre>
-    &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                         ↑               ↑
-                        ptr             rsp                                                      
+<code lang="simple"><pre>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">2</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
+                         <tok o="↑" type="operand">↑</tok>               <tok o="↑" type="operand">↑</tok>
+                        <tok type="symbol">ptr</tok>             <tok type="symbol">rsp</tok>                                                      
         </pre></code>
-<code><pre>
-    &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt;          &lt;DATA&gt; &lt;SIZE=1&gt;
-                         ↑               ↑
-                        ptr             rsp                                                      
+<code lang="simple"><pre>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">2</tok><tok o="&gt;" type="operand">&gt;</tok>          <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
+                         <tok o="↑" type="operand">↑</tok>               <tok o="↑" type="operand">↑</tok>
+                        <tok type="symbol">ptr</tok>             <tok type="symbol">rsp</tok>                                                      
         </pre></code>
 <p>Then we set the new size and update rsp.</p>
-<code><pre>
-    &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=3&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                ↑               ↑
-                           (ptr - amount)      rsp                                                      
+<code lang="simple"><pre>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">3</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
+                                <tok o="↑" type="operand">↑</tok>               <tok o="↑" type="operand">↑</tok>
+                           <tok o="(" type="operand">(</tok><tok type="symbol">ptr</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">amount</tok><tok o=")" type="operand">)</tok>      <tok type="symbol">rsp</tok>                                                      
         </pre></code>
 <p>
             Nice! Dynamic stack memory! But, there is still one more issue, and that is pointers. If we
             resize memory before a pointer, then everything get's pushed around and our pointer no longer points to the
             right object. Oh No!
         </p>
-<code><pre>
-    &lt;DATA&gt; &lt;SIZE=1&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                  ↑
-                            ptr (2nd item)
+<code lang="simple"><pre>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
+                                  <tok o="↑" type="operand">↑</tok>
+                            <tok type="symbol">ptr</tok> <tok o="(" type="operand">(</tok><tok type="number">2nd</tok> <tok type="symbol">item</tok><tok o=")" type="operand">)</tok>
         </pre></code>
-<code><pre>
-    &lt;DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;SIZE=4&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                  ↑
-                            ptr (invalidated)
+<code lang="simple"><pre>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">4</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
+                                  <tok o="↑" type="operand">↑</tok>
+                            <tok type="symbol">ptr</tok> <tok o="(" type="operand">(</tok><tok type="symbol">invalidated</tok><tok o=")" type="operand">)</tok>
         </pre></code>
 <p>
             The solution? Instead of storing the address of our data, we can
@@ -285,11 +289,11 @@
 <p>Into a list of tokens, like:</p>
 <code lang="c"><pre>
     <tok o="[" type="operand">[</tok>
-        <tok type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"u32"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"inc"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
-        <tok type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"("</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"u32"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"a"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">")"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
-        <tok type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"{"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
-        <tok type="symbol">Return</tok><tok o="," type="operand">,</tok> <tok type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"a"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"+"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Number</tok><tok o="(" type="operand">(</tok><tok type="number">1</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">";"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
-        <tok type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"}"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+        <tok titlecase type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"u32"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"inc"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+        <tok titlecase type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"("</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"u32"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"a"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">")"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+        <tok titlecase type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"{"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+        <tok titlecase type="symbol">Return</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Symbol</tok><tok o="(" type="operand">(</tok><tok type="string">"a"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"+"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Number</tok><tok o="(" type="operand">(</tok><tok type="number">1</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok> <tok titlecase type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">";"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+        <tok titlecase type="symbol">Operand</tok><tok o="(" type="operand">(</tok><tok type="string">"}"</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
     <tok o="]" type="operand">]</tok>
         </pre></code>
 <p>
@@ -302,15 +306,15 @@
             tree of <code>2+3*4</code> would look something like:
         </p>
 <code lang="c"><pre>
-         <tok type="symbol">Sym</tok><tok o="(" type="operand">(</tok><tok o="+" type="operand">+</tok><tok o=")" type="operand">)</tok>
+         <tok titlecase type="symbol">Sym</tok><tok o="(" type="operand">(</tok><tok o="+" type="operand">+</tok><tok o=")" type="operand">)</tok>
          <tok o="/" type="operand">/</tok>   <tok o="\" type="operand">\</tok>
         <tok o="/" type="operand">/</tok>     <tok o="\" type="operand">\</tok>
        <tok o="/" type="operand">/</tok>       <tok o="\" type="operand">\</tok>
-    <tok type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">2</tok><tok o=")" type="operand">)</tok>    <tok type="symbol">Sym</tok><tok o="(" type="operand">(</tok><tok o="*" type="operand">*</tok><tok o=")" type="operand">)</tok>
+    <tok titlecase type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">2</tok><tok o=")" type="operand">)</tok>    <tok titlecase type="symbol">Sym</tok><tok o="(" type="operand">(</tok><tok o="*" type="operand">*</tok><tok o=")" type="operand">)</tok>
               <tok o="/" type="operand">/</tok>   <tok o="\" type="operand">\</tok>
              <tok o="/" type="operand">/</tok>     <tok o="\" type="operand">\</tok>
             <tok o="/" type="operand">/</tok>       <tok o="\" type="operand">\</tok>
-        <tok type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">3</tok><tok o=")" type="operand">)</tok>      <tok type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">4</tok><tok o=")" type="operand">)</tok>
+        <tok titlecase type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">3</tok><tok o=")" type="operand">)</tok>      <tok titlecase type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">4</tok><tok o=")" type="operand">)</tok>
         </pre></code>
 <p>
             There is a
@@ -337,11 +341,11 @@
             Let's rewrite some of our assembly functions in our code-generator. For our <code>alloc</code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
         </p>
 <code lang="c"><pre>
-    <tok type="keyword">struct</tok> <tok type="symbol">Codegen</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">struct</tok> <tok titlecase type="symbol">Codegen</tok> <tok o="{" type="operand">{</tok>
         <tok type="symbol">stack_size</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok>
     <tok o="}" type="operand">}</tok>
     
-    <tok type="keyword">fn</tok> <tok type="function">alloc</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">size</tok><tok o=":" type="operand">:</tok> <tok type="symbol">u64</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">fn</tok> <tok type="function">alloc</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">size</tok><tok o=":" type="operand">:</tok> <tok type="symbol">u64</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
         <tok type="type">let</tok> <tok type="symbol">idx</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok><tok o=";" type="operand">;</tok>
         
         <tok type="comment">// allocate size bytes</tok>
@@ -355,14 +359,14 @@
         </pre></code>
 <p>And the <code>pop</code> function follows in the same vein.</p>
 <code lang="c"><pre>
-    <tok type="keyword">fn</tok> <tok type="function">pop</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">Codegen</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">fn</tok> <tok type="function">pop</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"sub qword [rsp], {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok> <tok o="-" type="operand">-</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>Then we can implement our <code>idx2addr</code> function. It will take in an index and return the address in a register.</p>
 <code lang="c"><pre>
-    <tok type="keyword">fn</tok> <tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">idx</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok> <tok type="symbol">reg</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">str</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">fn</tok> <tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">idx</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok> <tok type="symbol">reg</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">str</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov {reg}, rsp"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
 
         <tok type="keyword">for</tok> <tok o="(" type="operand">(</tok><tok type="type">let</tok> <tok type="symbol">i</tok> <tok o="=" type="operand">=</tok> <tok type="number">0</tok><tok o=";" type="operand">;</tok> <tok type="symbol">i</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok><tok o="-" type="operand">-</tok><tok type="symbol">idx</tok><tok o="-" type="operand">-</tok><tok type="number">1</tok><tok o=";" type="operand">;</tok> <tok type="symbol">i</tok><tok o="+" type="operand">+</tok><tok o="+" type="operand">+</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
@@ -374,7 +378,7 @@
             Now we can start with code-generating a simple number. We'll need to allocate some space on the stack and then put that number in it.
         </p>
 <code lang="c"><pre>
-    <tok type="keyword">fn</tok> <tok type="function">codegen_number</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">number</tok><tok o=":" type="operand">:</tok> <tok type="symbol">Number</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">fn</tok> <tok type="function">codegen_number</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">number</tok><tok o=":" type="operand">:</tok> <tok titlecase type="symbol">Number</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
         <tok type="type">let</tok> <tok type="symbol">idx</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">alloc</tok><tok o="(" type="operand">(</tok><tok type="number">16</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">idx</tok><tok o="," type="operand">,</tok> <tok type="string">"rbx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov qword [rbx], {number}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
@@ -385,7 +389,7 @@
             Now let's codegen an add function.
         </p>
 <code lang="c"><pre>
-    <tok type="keyword">fn</tok> <tok type="function">codegen_add</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">a</tok><tok o=":" type="operand">:</tok> <tok type="symbol">Expression</tok><tok o="," type="operand">,</tok> <tok type="symbol">b</tok><tok o=":" type="operand">:</tok> <tok type="symbol">Expression</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">fn</tok> <tok type="function">codegen_add</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">a</tok><tok o=":" type="operand">:</tok> <tok titlecase type="symbol">Expression</tok><tok o="," type="operand">,</tok> <tok type="symbol">b</tok><tok o=":" type="operand">:</tok> <tok titlecase type="symbol">Expression</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
         <tok type="comment">// codegen the expressions</tok>
         <tok type="type">let</tok> <tok type="symbol">a</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_expression</tok><tok o="(" type="operand">(</tok><tok type="symbol">a</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="type">let</tok> <tok type="symbol">b</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_expression</tok><tok o="(" type="operand">(</tok><tok type="symbol">b</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
@@ -409,10 +413,10 @@
         </pre></code>
 <p>Now we'll write the expression generator.</p>
 <code lang="c"><pre>
-    <tok type="keyword">fn</tok> <tok type="function">codegen_expression</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">expression</tok><tok o=":" type="operand">:</tok> <tok type="symbol">Expression</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
+    <tok type="keyword">fn</tok> <tok type="function">codegen_expression</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">expression</tok><tok o=":" type="operand">:</tok> <tok titlecase type="symbol">Expression</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
         <tok type="keyword">match</tok> <tok type="symbol">expression</tok> <tok o="{" type="operand">{</tok>
-            <tok type="symbol">Number</tok><tok o="(" type="operand">(</tok><tok type="symbol">num</tok><tok o=")" type="operand">)</tok> <tok o="=" type="operand">=</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_number</tok><tok o="(" type="operand">(</tok><tok type="symbol">num</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
-            <tok type="symbol">Add</tok><tok o="(" type="operand">(</tok><tok type="symbol">a</tok><tok o="," type="operand">,</tok> <tok type="symbol">b</tok><tok o=")" type="operand">)</tok> <tok o="=" type="operand">=</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_add</tok><tok o="(" type="operand">(</tok><tok type="symbol">a</tok><tok o="," type="operand">,</tok> <tok type="symbol">b</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+            <tok titlecase type="symbol">Number</tok><tok o="(" type="operand">(</tok><tok type="symbol">num</tok><tok o=")" type="operand">)</tok> <tok o="=" type="operand">=</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_number</tok><tok o="(" type="operand">(</tok><tok type="symbol">num</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
+            <tok titlecase type="symbol">Add</tok><tok o="(" type="operand">(</tok><tok type="symbol">a</tok><tok o="," type="operand">,</tok> <tok type="symbol">b</tok><tok o=")" type="operand">)</tok> <tok o="=" type="operand">=</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_add</tok><tok o="(" type="operand">(</tok><tok type="symbol">a</tok><tok o="," type="operand">,</tok> <tok type="symbol">b</tok><tok o=")" type="operand">)</tok><tok o="," type="operand">,</tok>
         <tok o="}" type="operand">}</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
@@ -470,12 +474,12 @@
         hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. We check for a hash collision and if there was, resize the array. If there wasn't just insert. Here is the pseudo-code:
 
         <code lang="c"><pre>
-        <tok type="keyword">struct</tok> <tok type="symbol">Bucket</tok> <tok o="{" type="operand">{</tok>
+        <tok type="keyword">struct</tok> <tok titlecase type="symbol">Bucket</tok> <tok o="{" type="operand">{</tok>
             <tok type="type">i32</tok> <tok type="symbol">key</tok><tok o="," type="operand">,</tok>
             <tok type="type">i32</tok> <tok type="symbol">value</tok><tok o="," type="operand">,</tok>
         <tok o="}" type="operand">}</tok>
 
-        <tok type="keyword">struct</tok> <tok type="symbol">HashMap</tok> <tok o="=" type="operand">=</tok> <tok o="[" type="operand">[</tok><tok o="]" type="operand">]</tok><tok type="symbol">Bucket</tok><tok o=";" type="operand">;</tok>
+        <tok type="keyword">struct</tok> <tok type="symbol">HashMap</tok> <tok o="=" type="operand">=</tok> <tok o="[" type="operand">[</tok><tok o="]" type="operand">]</tok><tok titlecase type="symbol">Bucket</tok><tok o=";" type="operand">;</tok>
 
         <tok type="type">void</tok> <tok type="function">hashmap_insert</tok><tok o="(" type="operand">(</tok><tok o="&amp;" type="operand">&amp;</tok><tok type="type">HashMap</tok> <tok type="symbol">map</tok><tok o="," type="operand">,</tok> <tok type="type">i32</tok> <tok type="symbol">key</tok><tok o="," type="operand">,</tok> <tok type="type">i32</tok> <tok type="symbol">value</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
             <tok type="comment">// get a random index</tok>

@@ -69,6 +69,10 @@
             color: lightgray;
         }
 
+        tok[type=symbol][titlecase] {
+            color: lightblue;
+        }
+
         tok[type=keyword] {
             color: purple;
         }
@@ -128,7 +132,7 @@
             data. For example, a list with two elements will look like this:
         </p>
 
-        <code><pre>
+        <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt; 3  &gt; &lt;DATA&gt; &lt; 1  &gt;
                                             ↑
                                            rsp</pre></code>
@@ -213,13 +217,13 @@
             <code>amount</code>.
         </p>
 
-        <code><pre>
+        <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
                          ↑               ↑
                         ptr             rsp                                                      
         </pre></code>
 
-        <code><pre>
+        <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt;          &lt;DATA&gt; &lt;SIZE=1&gt;
                          ↑               ↑
                         ptr             rsp                                                      
@@ -227,7 +231,7 @@
 
         <p>Then we set the new size and update rsp.</p>
 
-        <code><pre>
+        <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=3&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
                                 ↑               ↑
                            (ptr - amount)      rsp                                                      
@@ -239,13 +243,13 @@
             right object. Oh No!
         </p>
 
-        <code><pre>
+        <code lang="simple"><pre>
     &lt;DATA&gt; &lt;SIZE=1&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
                                   ↑
                             ptr (2nd item)
         </pre></code>
 
-        <code><pre>
+        <code lang="simple"><pre>
     &lt;DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;SIZE=4&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
                                   ↑
                             ptr (invalidated)
