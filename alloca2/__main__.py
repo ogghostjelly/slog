@@ -87,7 +87,7 @@ def tokenize(bs, lang, inp):
             out.append(wraptag(bs, "keyword", tok["value"]))
         elif lang == "c" and tok["type"] == "symbol" and tok["value"].islower() and ((next_tok["value"] == "(" or next_tok["value"] == "!") if next_tok != None else False):
             out.append(wraptag(bs, "function", tok["value"]))
-        elif lang == "c" and tok["type"] == "symbol" and (next_tok["type"] == "symbol" if next_tok != None else False):
+        elif lang == "c" and tok["type"] == "symbol" and ((next_tok["type"] == "symbol" and next_tok["value"] not in kwds) if next_tok != None else False):
             out.append(wraptag(bs, "type", tok["value"]))
         elif lang == "nasm" and tok["type"] == "symbol" and ((next_tok["type"] == "symbol" or next_tok["type"] == "number") if next_tok != None else False):
             out.append(wraptag(bs, "keyword", tok["value"]))
