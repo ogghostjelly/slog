@@ -1,3 +1,6 @@
+# This script goes against the "code soup"-way.
+# I'm still thinking how syntax highlighting would work while adhering to a code soup philosophy.
+
 # Reads the template file from `index.template.html` and outputs to `index.html`
 # applys syntax highlighting to <code> blocks.
 
