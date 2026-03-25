@@ -7,7 +7,6 @@ No abstractions. Copy and paste.
 No generalisations. Localised changes only. Nothing affects the entire site.
 No static. Change everything all the time.
 No pretty websites. It's not the goal. Let it live.
-No code that generates code that generates code that.
 No tools. Make your own. If you know it then you can change it.
 No universal formats. If your format can't change, change the format.
 No control. Write code that changes code. Don't tame the beast. Lose control.
