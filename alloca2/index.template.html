@@ -255,7 +255,7 @@
         </pre></code>
 
         <code lang="simple"><pre>
-    &lt;DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;SIZE=4&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
+    &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=3&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
                                   |
                             ptr (invalidated)
         </pre></code>
@@ -267,14 +267,7 @@
         </p>
 
         <p>
-            We can convert an index into an address by calculating how many steps backwards our data is from the end of
-            the stack with
-            <code>length - index - 1</code>. For example, if our stack has <code>5</code> elements and we want to find
-            the data at index
-            <code>2</code> we would need to move <code>5-2-1 = 2</code> step backwards from the end of the stack. Here
-            is
-            the pseudo-code for converting an index into an
-            address.
+            We can convert an index into an address by calculating how many steps backwards our data is from the end of the stack with <code>length - index - 1</code>. For example, if our stack has <code>5</code> elements and we want to find the data at index <code>2</code> we would need to jump <code>5-2-1 = 2</code> step backwards from the end of the stack. Here is the pseudo-code for converting an index into an address.
         </p>
 
         <code lang="c"><pre>
@@ -398,13 +391,12 @@
         </pre></code>
 
         <p>
-            It checks if the precedence of the previous operand is more or less than the next operand.
-            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence.
+            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence. This will jump to the "check right-hand-side for an operand" step given above.
         </p>
 
         <code><pre>
     if prev < next {
-        rhs = parser(prev.precedence, rhs);
+        rhs = parser(maximum=prev.precedence, lhs=rhs);
     }
         </pre></code>
 

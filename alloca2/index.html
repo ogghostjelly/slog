@@ -227,7 +227,7 @@
                             <tok type="symbol">ptr</tok> <tok o="(" type="operand">(</tok><tok type="number">2nd</tok> <tok type="symbol">item</tok><tok o=")" type="operand">)</tok>
         </pre></code>
 <code lang="simple"><pre>
-    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">4</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
+    <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">3</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
                                   <tok o="|" type="operand">|</tok>
                             <tok type="symbol">ptr</tok> <tok o="(" type="operand">(</tok><tok type="symbol">invalidated</tok><tok o=")" type="operand">)</tok>
         </pre></code>
@@ -237,14 +237,7 @@
             address when we need to use it. For example, instead of <code><tok type="number">0x123456789abcdef</tok></code> we store <code><tok type="number">0</tok></code> for the first item in the stack.
         </p>
 <p>
-            We can convert an index into an address by calculating how many steps backwards our data is from the end of
-            the stack with
-            <code><tok type="symbol">length</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">index</tok> <tok o="-" type="operand">-</tok> <tok type="number">1</tok></code>. For example, if our stack has <code><tok type="number">5</tok></code> elements and we want to find
-            the data at index
-            <code><tok type="number">2</tok></code> we would need to move <code><tok type="number">5</tok><tok o="-" type="operand">-</tok><tok type="number">2</tok><tok o="-" type="operand">-</tok><tok type="number">1</tok> <tok o="=" type="operand">=</tok> <tok type="number">2</tok></code> step backwards from the end of the stack. Here
-            is
-            the pseudo-code for converting an index into an
-            address.
+            We can convert an index into an address by calculating how many steps backwards our data is from the end of the stack with <code><tok type="symbol">length</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">index</tok> <tok o="-" type="operand">-</tok> <tok type="number">1</tok></code>. For example, if our stack has <code><tok type="number">5</tok></code> elements and we want to find the data at index <code><tok type="number">2</tok></code> we would need to jump <code><tok type="number">5</tok><tok o="-" type="operand">-</tok><tok type="number">2</tok><tok o="-" type="operand">-</tok><tok type="number">1</tok> <tok o="=" type="operand">=</tok> <tok type="number">2</tok></code> step backwards from the end of the stack. Here is the pseudo-code for converting an index into an address.
         </p>
 <code lang="c"><pre>
     <tok type="keyword">fn</tok> <tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">idx</tok><tok o=":" type="operand">:</tok> <tok type="symbol">u64</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">u64</tok> <tok o="{" type="operand">{</tok>
@@ -347,12 +340,11 @@
    <tok type="symbol">lhs</tok>   <tok type="symbol">rhs</tok>
         </pre></code>
 <p>
-            It checks if the precedence of the previous operand is more or less than the next operand.
-            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence.
+            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence. This will jump to the "check right-hand-side for an operand" step given above.
         </p>
 <code><pre>
     <tok type="keyword">if</tok> <tok type="symbol">prev</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">next</tok> <tok o="{" type="operand">{</tok>
-        <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parser</tok><tok o="(" type="operand">(</tok><tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parser</tok><tok o="(" type="operand">(</tok><tok type="symbol">maximum</tok><tok o="=" type="operand">=</tok><tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o="=" type="operand">=</tok><tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>Then we join the left-hand-side and right-hand-side.</p>
