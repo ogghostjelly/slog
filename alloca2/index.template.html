@@ -365,22 +365,53 @@
         </p>
 
         <p>
-            In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> parses a "primary" expression, then checks the right-hand-side for an operand (like <code>+</code>, <code>*</code>, etc.). A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
+            In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> will take the following steps. First, it parses a "primary" expression, we will call it <code>lhs</code> for "left-hand-side". A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
         </p>
 
+        <p>Then we can write the signature for our parsing binary operator function. The <code>minimum</code> parameter will be useful later.</p>
+
+        <code lang="c"><pre>
+    fn parse_binop(minimum: usize, lhs: Expression);
+        </pre></code>
+
+        <p>And we can pass in the <code>lhs</code> we parsed earlier.</p>
+
+        <code lang="c"><pre>
+    parse_binop(0, lhs);
+        </pre></code>
+
+        <p>Inside the body of <code>parse_binop</code>, it peeks at the right-hand-side for an operand (like <code>+</code>, <code>*</code>, etc.)</p>
+
         <code lang="simple"><pre>
-    primary  operand
+     lhs   operand
       |      |
       2      +
         </pre></code>
 
         <p>
-            If the operand has higher precedence than the "maximum" then we just return the primary expression and allow some other function higher in the call stack to parse the rest of it. We will be utilizing the "maximum" precedence later, but for now it can just default to <code>0</code>.
+            If the operand has lower precedence than the <code>minimum</code>, we just return the <code>lhs</code> and allow some other function higher in the call stack to parse the rest of it.
         </p>
 
+        <code><pre>
+    fn parse_binop(minimum, lhs) {
+        if peek_operand().precedence < minimum {
+            return lhs;
+        }
+
+        ...
+        </pre></code>
+
         <p>
-            If the operand has lower precedence than the "maximum", the parser then parses the next primary and next operand.
+            If the operand has higher precedence than the <code>minimum</code>, then parse the next primary and next operand.
         </p>
+
+        <code><pre>
+    let prev = parse_operand(); 
+    let rhs = parse_primary();
+    let next = peek_operand();
+        </pre></code>
+
+        <p>Our example now looks like this:</p>
 
         <code lang="simple"><pre>
       prev  next
@@ -391,25 +422,51 @@
         </pre></code>
 
         <p>
-            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence. This will jump to the "check right-hand-side for an operand" step given above.
+            If the next operand has higher precedence than the previous then recursively call the parser with the "minimum" set to the previous operand's precedence.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     if prev < next {
-        rhs = parser(maximum=prev.precedence, lhs=rhs);
+        rhs = parse_binop(prev.precedence, rhs);
     }
         </pre></code>
 
         <p>Then we join the left-hand-side and right-hand-side.</p>
 
-        <code><pre>
+        <code lang="c"><pre>
     lhs = Ast(lhs, prev, rhs)
         </pre></code>
 
-        <p>And recursively call again with the same "maximum" value.</p>
+        <p>And recursively call again with the same "minimum" value.</p>
 
-        <code><pre>
-    parser(maximum, lhs)
+        <code lang="c"><pre>
+    parse_binop(minimum, lhs)
+        </pre></code>
+
+        <p>Here is the full pseudo-code:</p>
+
+        <code lang="c"><pre>
+    fn parse_expression() {
+        return parse_binop(0, parse_primary());
+    }
+
+    fn parse_binop(minimum, lhs) {
+        if peek_operand().precedence < minimum {
+            return lhs;
+        }
+
+        let prev = parse_operand(); 
+        let rhs = parse_primary();
+        let next = peek_operand();
+
+        if prev.precedence < next.precedence {
+            rhs = parse_binop(prev.precedence, rhs);
+        }
+
+        lhs = Ast(lhs, prev, rhs)
+
+        parse_binop(minimum, lhs)
+    }
         </pre></code>
 
         <p>

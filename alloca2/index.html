@@ -319,19 +319,42 @@
             If you want to try implementing a parser yourself and are a beginner. I highly suggest using lisp-like syntax since it is much easier to parse. There is a <a href="https://github.com/kanaka/mal/blob/master/process/guide.md#step-1-read-and-print">section in Make a Lisp</a> that might be helpful for you.
         </p>
 <p>
-            In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> parses a "primary" expression, then checks the right-hand-side for an operand (like <code><tok o="+" type="operand">+</tok></code>, <code><tok o="*" type="operand">*</tok></code>, etc.). A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
+            In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> will take the following steps. First, it parses a "primary" expression, we will call it <code><tok type="symbol">lhs</tok></code> for "left-hand-side". A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
         </p>
+<p>Then we can write the signature for our parsing binary operator function. The <code><tok type="symbol">minimum</tok></code> parameter will be useful later.</p>
+<code lang="c"><pre>
+    <tok type="keyword">fn</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=":" type="operand">:</tok> <tok titlecase type="symbol">Expression</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        </pre></code>
+<p>And we can pass in the <code><tok type="symbol">lhs</tok></code> we parsed earlier.</p>
+<code lang="c"><pre>
+    <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="number">0</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        </pre></code>
+<p>Inside the body of <code><tok type="symbol">parse_binop</tok></code>, it peeks at the right-hand-side for an operand (like <code><tok o="+" type="operand">+</tok></code>, <code><tok o="*" type="operand">*</tok></code>, etc.)</p>
 <code lang="simple"><pre>
-    <tok type="symbol">primary</tok>  <tok type="symbol">operand</tok>
+     <tok type="symbol">lhs</tok>   <tok type="symbol">operand</tok>
       <tok o="|" type="operand">|</tok>      <tok o="|" type="operand">|</tok>
       <tok type="number">2</tok>      <tok o="+" type="operand">+</tok>
         </pre></code>
 <p>
-            If the operand has higher precedence than the "maximum" then we just return the primary expression and allow some other function higher in the call stack to parse the rest of it. We will be utilizing the "maximum" precedence later, but for now it can just default to <code><tok type="number">0</tok></code>.
+            If the operand has lower precedence than the <code><tok type="symbol">minimum</tok></code>, we just return the <code><tok type="symbol">lhs</tok></code> and allow some other function higher in the call stack to parse the rest of it.
         </p>
+<code><pre>
+    <tok type="keyword">fn</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+        <tok type="keyword">if</tok> <tok type="function">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">minimum</tok> <tok o="{" type="operand">{</tok>
+            <tok type="keyword">return</tok> <tok type="symbol">lhs</tok><tok o=";" type="operand">;</tok>
+        <tok o="}" type="operand">}</tok>
+
+        <tok o="." type="operand">.</tok><tok o="." type="operand">.</tok><tok o="." type="operand">.</tok>
+        </pre></code>
 <p>
-            If the operand has lower precedence than the "maximum", the parser then parses the next primary and next operand.
+            If the operand has higher precedence than the <code><tok type="symbol">minimum</tok></code>, then parse the next primary and next operand.
         </p>
+<code><pre>
+    <tok type="type">let</tok> <tok type="symbol">prev</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok> 
+    <tok type="type">let</tok> <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_primary</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+    <tok type="type">let</tok> <tok type="symbol">next</tok> <tok o="=" type="operand">=</tok> <tok type="function">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        </pre></code>
+<p>Our example now looks like this:</p>
 <code lang="simple"><pre>
       <tok type="symbol">prev</tok>  <tok type="symbol">next</tok>
        <tok o="|" type="operand">|</tok>     <tok o="|" type="operand">|</tok>
@@ -340,20 +363,44 @@
    <tok type="symbol">lhs</tok>   <tok type="symbol">rhs</tok>
         </pre></code>
 <p>
-            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence. This will jump to the "check right-hand-side for an operand" step given above.
+            If the next operand has higher precedence than the previous then recursively call the parser with the "minimum" set to the previous operand's precedence.
         </p>
-<code><pre>
+<code lang="c"><pre>
     <tok type="keyword">if</tok> <tok type="symbol">prev</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">next</tok> <tok o="{" type="operand">{</tok>
-        <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parser</tok><tok o="(" type="operand">(</tok><tok type="symbol">maximum</tok><tok o="=" type="operand">=</tok><tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o="=" type="operand">=</tok><tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>Then we join the left-hand-side and right-hand-side.</p>
-<code><pre>
+<code lang="c"><pre>
     <tok type="symbol">lhs</tok> <tok o="=" type="operand">=</tok> <tok titlecase type="symbol">Ast</tok><tok o="(" type="operand">(</tok><tok type="symbol">lhs</tok><tok o="," type="operand">,</tok> <tok type="symbol">prev</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok>
         </pre></code>
-<p>And recursively call again with the same "maximum" value.</p>
-<code><pre>
-    <tok type="function">parser</tok><tok o="(" type="operand">(</tok><tok type="symbol">maximum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok>
+<p>And recursively call again with the same "minimum" value.</p>
+<code lang="c"><pre>
+    <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok>
+        </pre></code>
+<p>Here is the full pseudo-code:</p>
+<code lang="c"><pre>
+    <tok type="keyword">fn</tok> <tok type="function">parse_expression</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+        <tok type="keyword">return</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="number">0</tok><tok o="," type="operand">,</tok> <tok type="function">parse_primary</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+    <tok o="}" type="operand">}</tok>
+
+    <tok type="keyword">fn</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+        <tok type="keyword">if</tok> <tok type="function">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">minimum</tok> <tok o="{" type="operand">{</tok>
+            <tok type="keyword">return</tok> <tok type="symbol">lhs</tok><tok o=";" type="operand">;</tok>
+        <tok o="}" type="operand">}</tok>
+
+        <tok type="type">let</tok> <tok type="symbol">prev</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok> 
+        <tok type="type">let</tok> <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_primary</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok type="type">let</tok> <tok type="symbol">next</tok> <tok o="=" type="operand">=</tok> <tok type="function">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+
+        <tok type="keyword">if</tok> <tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">next</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok> <tok o="{" type="operand">{</tok>
+            <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok o="}" type="operand">}</tok>
+
+        <tok type="symbol">lhs</tok> <tok o="=" type="operand">=</tok> <tok titlecase type="symbol">Ast</tok><tok o="(" type="operand">(</tok><tok type="symbol">lhs</tok><tok o="," type="operand">,</tok> <tok type="symbol">prev</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok>
+
+        <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok>
+    <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>
             Now we have an AST that can represent function definitions, variable assignments,
