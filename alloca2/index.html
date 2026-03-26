@@ -40,6 +40,11 @@
             }
         }
 
+        code {
+            white-space: pre;
+            overflow-x: auto;
+        }
+
         tok[type=operand] {
             color: turquoise;
         }
@@ -127,22 +132,27 @@
         </p>
 <code lang="simple"><pre>
     <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="number">3</tok>  <tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="number">1</tok>  <tok o="&gt;" type="operand">&gt;</tok>
-                                            <tok o="↑" type="operand">↑</tok>
+                                            <tok o="|" type="operand">|</tok>
                                            <tok type="symbol">rsp</tok></pre></code>
 <p>
-            The stack pointer will point to the last element in the list.
+            The stack pointer will point to the last element in the list. The size section of each data element is named "the size tag" and it is stored as an 8-byte <code><tok type="symbol">u64</tok></code>.
         </p>
 <p></p>
 <h2>implementation</h2>
 <p>
             We'll start off implementing our stack in assembly.
-            We need to write some primitives for stack allocation, <code>alloc</code>, <code>pop</code> and
-            <code>resize</code>.
+            We need to write some primitives for stack allocation, <code><tok type="symbol">alloc</tok></code>, <code><tok type="symbol">pop</tok></code> and
+            <code><tok type="symbol">resize</tok></code>.
         </p>
 <p>
-            Let's start off implementing <code>alloc</code> because it's the simplest.
-            Here is the assembly code:
+            Let's start off implementing <code><tok type="symbol">alloc</tok></code> because it's the simplest.
         </p>
+<p>
+            Because of our unique constraints, we aren't allowed to use
+            <code><tok type="symbol">call</tok></code>, <code><tok type="symbol">push</tok></code>, <code><tok type="symbol">pop</tok></code> or any assembly instruction that modifies the stack.
+            Instead we can use <code><tok type="symbol">jmp</tok></code> instructions and store the return address in a register.
+        </p>
+<p>Here is the assembly code:</p>
 <code lang="nasm"><pre>
     <tok type="symbol">alloc</tok><tok o=":" type="operand">:</tok>
         <tok type="comment">; allocate size bytes</tok>
@@ -154,15 +164,10 @@
         <tok type="keyword">jmp</tok> <tok type="symbol">rax</tok>
         </pre></code>
 <p>
-            Because of our unique constraints, we generally aren't allowed to use
-            <code>call</code>, <code>push</code>, <code>pop</code> or any assembly instruction that modifies the stack.
-            Instead we can use <code>jmp</code> instructions and store the return address in a register.
+            The return address is given in <code><tok type="symbol">rax</tok></code> and the amount (in bytes) to allocate is given in
+            <code><tok type="symbol">rbx</tok></code>. Note the <code><tok type="type">mov</tok> <tok type="symbol">qword</tok></code> and how the last 8-bytes of the allocation are used for the size. The amount to allocate in <code><tok type="symbol">rbx</tok></code> has to include an extra 8-bytes for the size tag.
         </p>
-<p>
-            The return address is given in <code>rax</code> and the amount (in bytes) to allocate is given in
-            <code>rbx</code>. Note the <code>mov qword</code> and how the last 8-bytes of the allocation are used for the size. The amount to allocate in <code>rbx</code> has to include an extra 8-bytes for the size tag.
-        </p>
-<p>And here is the implementation for <code>pop</code>.</p>
+<p>And here is the implementation for <code><tok type="symbol">pop</tok></code>.</p>
 <code lang="c"><pre>
     <tok type="keyword">fn</tok> <tok type="function">pop</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
         <tok type="symbol">rsp</tok> <tok o="-" type="operand">-</tok><tok o="=" type="operand">=</tok> <tok o="*" type="operand">*</tok><tok type="symbol">rsp</tok><tok o=";" type="operand">;</tok>
@@ -174,7 +179,7 @@
         <tok type="keyword">jmp</tok> <tok type="symbol">rax</tok>
         </pre></code>
 <p>
-            Now, implementing <code>resize</code> is going to be a little more complicated. For the sake of brevity I'll
+            Now, implementing <code><tok type="symbol">resize</tok></code> is going to be a little more complicated. For the sake of brevity I'll
             just show the pseudo-code, but you can imagine how this would translate to assembly.
         </p>
 <code lang="c"><pre>
@@ -186,58 +191,57 @@
         <tok o="}" type="operand">}</tok>
 
         <tok type="comment">// update the size and rsp</tok>
-        <tok type="type">let</tok> <tok type="symbol">size</tok> <tok o="=" type="operand">=</tok> <tok o="*" type="operand">*</tok><tok type="symbol">ptr</tok><tok o=";" type="operand">;</tok>
-        <tok o="*" type="operand">*</tok><tok o="(" type="operand">(</tok><tok type="symbol">ptr</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">amount</tok><tok o=")" type="operand">)</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">size</tok> <tok o="+" type="operand">+</tok> <tok type="symbol">amount</tok><tok o=";" type="operand">;</tok>
+        <tok o="*" type="operand">*</tok><tok o="(" type="operand">(</tok><tok type="symbol">ptr</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">amount</tok><tok o=")" type="operand">)</tok> <tok o="=" type="operand">=</tok> <tok o="*" type="operand">*</tok><tok type="symbol">ptr</tok> <tok o="+" type="operand">+</tok> <tok type="symbol">amount</tok><tok o=";" type="operand">;</tok>
         <tok type="symbol">rsp</tok> <tok o="-" type="operand">-</tok><tok o="=" type="operand">=</tok> <tok type="symbol">amount</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>
-            We'll start at <code>rsp</code> and move backwards
-            until we reach <code>ptr</code>. We'll move all the data we meet along the way down by the given
-            <code>amount</code>.
+            We'll start at <code><tok type="symbol">rsp</tok></code> and move backwards
+            until we reach <code><tok type="symbol">ptr</tok></code>. We'll move all the data we meet along the way down by the given
+            <code><tok type="symbol">amount</tok></code>.
         </p>
 <code lang="simple"><pre>
     <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">2</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
-                         <tok o="↑" type="operand">↑</tok>               <tok o="↑" type="operand">↑</tok>
+                         <tok o="|" type="operand">|</tok>               <tok o="|" type="operand">|</tok>
                         <tok type="symbol">ptr</tok>             <tok type="symbol">rsp</tok>                                                      
         </pre></code>
 <code lang="simple"><pre>
     <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">2</tok><tok o="&gt;" type="operand">&gt;</tok>          <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
-                         <tok o="↑" type="operand">↑</tok>               <tok o="↑" type="operand">↑</tok>
+                         <tok o="|" type="operand">|</tok>               <tok o="|" type="operand">|</tok>
                         <tok type="symbol">ptr</tok>             <tok type="symbol">rsp</tok>                                                      
         </pre></code>
 <p>Then we set the new size and update rsp.</p>
 <code lang="simple"><pre>
     <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">3</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
-                                <tok o="↑" type="operand">↑</tok>               <tok o="↑" type="operand">↑</tok>
+                                <tok o="|" type="operand">|</tok>               <tok o="|" type="operand">|</tok>
                            <tok o="(" type="operand">(</tok><tok type="symbol">ptr</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">amount</tok><tok o=")" type="operand">)</tok>      <tok type="symbol">rsp</tok>                                                      
         </pre></code>
 <p>
-            Nice! Dynamic stack memory! But, there is still one more issue, and that is pointers. If we
+            Nice! Dynamic stack memory! But, there is still one more issue, and that is <em>pointers</em>. If we
             resize memory before a pointer, then everything get's pushed around and our pointer no longer points to the
             right object. Oh No!
         </p>
 <code lang="simple"><pre>
     <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
-                                  <tok o="↑" type="operand">↑</tok>
+                                  <tok o="|" type="operand">|</tok>
                             <tok type="symbol">ptr</tok> <tok o="(" type="operand">(</tok><tok type="number">2nd</tok> <tok type="symbol">item</tok><tok o=")" type="operand">)</tok>
         </pre></code>
 <code lang="simple"><pre>
     <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">NEW</tok> <tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">4</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">DATA</tok><tok o="&gt;" type="operand">&gt;</tok> <tok o="&lt;" type="operand">&lt;</tok><tok type="symbol">SIZE</tok><tok o="=" type="operand">=</tok><tok type="number">1</tok><tok o="&gt;" type="operand">&gt;</tok>
-                                  <tok o="↑" type="operand">↑</tok>
+                                  <tok o="|" type="operand">|</tok>
                             <tok type="symbol">ptr</tok> <tok o="(" type="operand">(</tok><tok type="symbol">invalidated</tok><tok o=")" type="operand">)</tok>
         </pre></code>
 <p>
             The solution? Instead of storing the address of our data, we can
             store the index. Then we can convert that index into an
-            address when we need to use it.
+            address when we need to use it. For example, instead of <code><tok type="number">0x123456789abcdef</tok></code> we store <code><tok type="number">0</tok></code> for the first item in the stack.
         </p>
 <p>
             We can convert an index into an address by calculating how many steps backwards our data is from the end of
             the stack with
-            <code>length - index - 1</code>. For example, if our stack has <code>3</code> elements and we want to find
+            <code><tok type="symbol">length</tok> <tok o="-" type="operand">-</tok> <tok type="symbol">index</tok> <tok o="-" type="operand">-</tok> <tok type="number">1</tok></code>. For example, if our stack has <code><tok type="number">5</tok></code> elements and we want to find
             the data at index
-            <code>1</code> we would need to move <code>3-1-1 = 1</code> step backwards from the end of the stack. Here
+            <code><tok type="number">2</tok></code> we would need to move <code><tok type="number">5</tok><tok o="-" type="operand">-</tok><tok type="number">2</tok><tok o="-" type="operand">-</tok><tok type="number">1</tok> <tok o="=" type="operand">=</tok> <tok type="number">2</tok></code> step backwards from the end of the stack. Here
             is
             the pseudo-code for converting an index into an
             address.
@@ -255,9 +259,9 @@
         </pre></code>
 <p>
             Note that this means we have to keep track of the length of our list in a register somewhere. Since we
-            aren't using <code>rbp</code> for anything else, I've designated <code>rbp</code> as our length register.
-            We'll update <code>alloc</code> and <code>pop</code> to increment/decrement <code>rbp</code>.
-            For deeply nested data-structures like <code>&amp;arr[0][1][2]</code>, we'll have to store the reference as a
+            aren't using <code><tok type="symbol">rbp</tok></code> for anything else, I've designated <code><tok type="symbol">rbp</tok></code> as our length register.
+            We'll update <code><tok type="symbol">alloc</tok></code> and <code><tok type="symbol">pop</tok></code> to increment/decrement <code><tok type="symbol">rbp</tok></code>.
+            For deeply nested data-structures like <code><tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">arr</tok><tok o="[" type="operand">[</tok><tok type="number">0</tok><tok o="]" type="operand">]</tok><tok o="[" type="operand">[</tok><tok type="number">1</tok><tok o="]" type="operand">]</tok><tok o="[" type="operand">[</tok><tok type="number">2</tok><tok o="]" type="operand">]</tok></code>, we'll have to store the reference as a
             list of indicies. This means that references to deeply nested data-structures can get quite long, but that's a sacrifice <a href="https://www.youtube.com/watch?v=hiKuxfcSrEU">I'm willing to make</a>.
         </p>
 <p>
@@ -274,9 +278,8 @@
 <p>
             I'll be glossing over the whole "making a language" part in this blog post. I highly suggest you try
             following <a href="http://github.com/kanaka/mal/">Make a Lisp</a> and <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/">LLVM Kaleidoscope</a> if you're feeling
-            up for a challenge. They'll teach you a lot about writing your own languages. You can see my own implementation of "Make a Lisp" <a href="https://github.com/ogghostjelly/mal">here</a>.
+            up for a challenge. They'll teach you a lot about writing your own languages. You can see my own implementation of "Make a Lisp", <a href="https://github.com/ogghostjelly/mal">here</a>.
         </p>
-<p>This is going to be quite difficult...</p>
 <p>
             For simplicity, the language will compile to NASM assembly. First we have a tokenizer. It'll convert a
             stream of text like:
@@ -303,7 +306,7 @@
         </p>
 <p>
             We need to convert our stream of tokens into an abstract syntax tree (AST). For example, the abstract syntax
-            tree of <code>2+3*4</code> would look something like:
+            tree of <code><tok type="number">2</tok><tok o="+" type="operand">+</tok><tok type="number">3</tok><tok o="*" type="operand">*</tok><tok type="number">4</tok></code> would look something like:
         </p>
 <code lang="c"><pre>
          <tok titlecase type="symbol">Sym</tok><tok o="(" type="operand">(</tok><tok o="+" type="operand">+</tok><tok o=")" type="operand">)</tok>
@@ -317,28 +320,61 @@
         <tok titlecase type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">3</tok><tok o=")" type="operand">)</tok>      <tok titlecase type="symbol">Num</tok><tok o="(" type="operand">(</tok><tok type="number">4</tok><tok o=")" type="operand">)</tok>
         </pre></code>
 <p>
-            There is a
-            <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html#binary-expression-parsing">
-                section in LLVM Kaleidoscope
-            </a> about parsing "binary expressions", and the first part of <a href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a>
-            shows how to implement a binary expression parser.
-            If you want to try this too and are a beginner, I highly suggest using a lisp-like
-            syntax since it is much easier to parse.
+            Parsing simple expressions like <code><tok type="type">set</tok> <tok type="symbol">x</tok> <tok o="=" type="operand">=</tok> <tok type="number">3</tok><tok o=";" type="operand">;</tok></code> into an AST is pretty easy, but for more complicated expressions like <code><tok type="number">2</tok><tok o="+" type="operand">+</tok><tok type="number">3</tok><tok o="*" type="operand">*</tok><tok type="number">4</tok></code> you have to start worrying about operator precedence. There's a wonderful <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html#binary-expression-parsing">section in LLVM Kaleidoscope</a> and the first part of <a href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a> that both show examples of a binary expression parser.
         </p>
+<p>
+            If you want to try implementing a parser yourself and are a beginner. I highly suggest using lisp-like syntax since it is much easier to parse. There is a <a href="https://github.com/kanaka/mal/blob/master/process/guide.md#step-1-read-and-print">section in Make a Lisp</a> that might be helpful for you.
+        </p>
+<p>
+            In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> parses a "primary" expression, then checks the right-hand-side for an operand (like <code><tok o="+" type="operand">+</tok></code>, <code><tok o="*" type="operand">*</tok></code>, etc.). A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
+        </p>
+<code lang="simple"><pre>
+    <tok type="symbol">primary</tok>  <tok type="symbol">operand</tok>
+      <tok o="|" type="operand">|</tok>      <tok o="|" type="operand">|</tok>
+      <tok type="number">2</tok>      <tok o="+" type="operand">+</tok>
+        </pre></code>
+<p>
+            If the operand has higher precedence than the "maximum" then we just return the primary expression and allow some other function higher in the call stack to parse the rest of it. We will be utilizing the "maximum" precedence later, but for now it can just default to <code><tok type="number">0</tok></code>.
+        </p>
+<p>
+            If the operand has lower precedence than the "maximum", the parser then parses the next primary and next operand.
+        </p>
+<code lang="simple"><pre>
+      <tok type="symbol">prev</tok>  <tok type="symbol">next</tok>
+       <tok o="|" type="operand">|</tok>     <tok o="|" type="operand">|</tok>
+    <tok type="number">2</tok> <tok o="[" type="operand">[</tok><tok o="+" type="operand">+</tok><tok o="]" type="operand">]</tok> <tok type="number">3</tok> <tok o="[" type="operand">[</tok><tok o="*" type="operand">*</tok><tok o="]" type="operand">]</tok>
+    <tok o="|" type="operand">|</tok>     <tok o="|" type="operand">|</tok>
+   <tok type="symbol">lhs</tok>   <tok type="symbol">rhs</tok>
+        </pre></code>
+<p>
+            It checks if the precedence of the previous operand is more or less than the next operand.
+            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence.
+        </p>
+<code><pre>
+    <tok type="keyword">if</tok> <tok type="symbol">prev</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">next</tok> <tok o="{" type="operand">{</tok>
+        <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parser</tok><tok o="(" type="operand">(</tok><tok type="symbol">prev</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+    <tok o="}" type="operand">}</tok>
+        </pre></code>
+<p>Then we join the left-hand-side and right-hand-side.</p>
+<code><pre>
+    <tok type="symbol">lhs</tok> <tok o="=" type="operand">=</tok> <tok titlecase type="symbol">Ast</tok><tok o="(" type="operand">(</tok><tok type="symbol">lhs</tok><tok o="," type="operand">,</tok> <tok type="symbol">prev</tok><tok o="," type="operand">,</tok> <tok type="symbol">rhs</tok><tok o=")" type="operand">)</tok>
+        </pre></code>
+<p>And recursively call again with the same "maximum" value.</p>
+<code><pre>
+    <tok type="function">parser</tok><tok o="(" type="operand">(</tok><tok type="symbol">maximum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok>
+        </pre></code>
 <p>
             Now we have an AST that can represent function definitions, variable assignments,
             expressions, and control flow operations (if, while, for). We need to write a code-generator that generates
-            our NASM assembly. It'll take in our AST and output NASM. Then we can call the <code>nasm</code> command
+            our NASM assembly. It'll take in our AST and output NASM. Then we can call the <code><tok type="symbol">nasm</tok></code> command
             line tool directly to
             compile it into a binary.
         </p>
 <p>
-            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no
-            debugger works
-            because your stack is too screwed, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
+            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no debugger works because your stack is too screwed, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
         </p>
 <p>
-            Let's rewrite some of our assembly functions in our code-generator. For our <code>alloc</code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
+            Let's rewrite some of our assembly functions in our code-generator. For our <code><tok type="symbol">alloc</tok></code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
         </p>
 <code lang="c"><pre>
     <tok type="keyword">struct</tok> <tok titlecase type="symbol">Codegen</tok> <tok o="{" type="operand">{</tok>
@@ -351,20 +387,20 @@
         <tok type="comment">// allocate size bytes</tok>
         <tok type="comment">// set the last 8 bytes to size</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"sub rsp, {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-        <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"sub qword [rsp], {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov qword [rsp], {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok> <tok o="+" type="operand">+</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
 
         <tok type="keyword">return</tok> <tok type="symbol">idx</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
-<p>And the <code>pop</code> function follows in the same vein.</p>
+<p>And the <code><tok type="symbol">pop</tok></code> function follows in the same vein.</p>
 <code lang="c"><pre>
     <tok type="keyword">fn</tok> <tok type="function">pop</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
-        <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"sub qword [rsp], {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"add rsp, [rsp]"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok> <tok o="-" type="operand">-</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
-<p>Then we can implement our <code>idx2addr</code> function. It will take in an index and return the address in a register.</p>
+<p>Then we can implement our <code><tok type="symbol">idx2addr</tok></code> function. It will take in an index and return the address in a register.</p>
 <code lang="c"><pre>
     <tok type="keyword">fn</tok> <tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">idx</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok> <tok type="symbol">reg</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">str</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov {reg}, rsp"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
@@ -396,19 +432,15 @@
 
         <tok type="comment">// dereference the indicies</tok>
         <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">a</tok><tok o="," type="operand">,</tok> <tok type="string">"rbx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">b</tok><tok o="," type="operand">,</tok> <tok type="string">"mov qword [rsp], 16"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">b</tok><tok o="," type="operand">,</tok> <tok type="string">"rcx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov rbx, [rbx+8]"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov rcx, [rcx+8]"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
 
         <tok type="comment">// add the numbers</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"add rbx, rcx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
 
-        <tok type="comment">// allocate the result</tok>
-        <tok type="type">let</tok> <tok type="symbol">idx</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">alloc</tok><tok o="(" type="operand">(</tok><tok type="number">16</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">idx</tok><tok o="," type="operand">,</tok> <tok type="string">"rdx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-        <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov qword [rdx], rbx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-
-        <tok type="keyword">return</tok> <tok type="symbol">idx</tok><tok o=";" type="operand">;</tok>
+        <tok type="comment">// allocate and return the result</tok>
+        <tok type="keyword">return</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="function">codegen_number</tok><tok o="(" type="operand">(</tok><tok type="string">"rbx"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>Now we'll write the expression generator.</p>
@@ -471,7 +503,7 @@
         </p>
 <h2>a cake walk (in comparison)</h2>
 
-        hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. We check for a hash collision and if there was, resize the array. If there wasn't just insert. Here is the pseudo-code:
+        hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. If there was a hash collision (two keys share the same hash) then resize the array and try again.
 
         <code lang="c"><pre>
         <tok type="keyword">struct</tok> <tok titlecase type="symbol">Bucket</tok> <tok o="{" type="operand">{</tok>
@@ -498,7 +530,7 @@
             <tok o="}" type="operand">}</tok>
         <tok o="}" type="operand">}</tok>
         </pre></code>
-<p>The <code>hashmap_resize</code> function is just going to create a new hashmap and reinsert all the items:
+<p>The <code><tok type="symbol">hashmap_resize</tok></code> function is just going to create a new hashmap and reinsert all the items:
         </p>
 <code lang="c"><pre>
         <tok type="type">void</tok> <tok type="function">hashmap_resize</tok><tok o="(" type="operand">(</tok><tok o="&amp;" type="operand">&amp;</tok><tok type="type">HashMap</tok> <tok type="symbol">map</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>

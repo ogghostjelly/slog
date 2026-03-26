@@ -39,6 +39,11 @@
             }
         }
 
+        code {
+            white-space: pre;
+            overflow-x: auto;
+        }
+
         tok[type=operand] {
             color: turquoise;
         }
@@ -134,11 +139,11 @@
 
         <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt; 3  &gt; &lt;DATA&gt; &lt; 1  &gt;
-                                            ↑
+                                            |
                                            rsp</pre></code>
 
         <p>
-            The stack pointer will point to the last element in the list.
+            The stack pointer will point to the last element in the list. The size section of each data element is named "the size tag" and it is stored as an 8-byte <code>u64</code>.
         </p>
 
         <p></p>
@@ -153,8 +158,15 @@
 
         <p>
             Let's start off implementing <code>alloc</code> because it's the simplest.
-            Here is the assembly code:
         </p>
+
+        <p>
+            Because of our unique constraints, we aren't allowed to use
+            <code>call</code>, <code>push</code>, <code>pop</code> or any assembly instruction that modifies the stack.
+            Instead we can use <code>jmp</code> instructions and store the return address in a register.
+        </p>
+
+        <p>Here is the assembly code:</p>
 
         <code lang="nasm"><pre>
     alloc:
@@ -166,12 +178,6 @@
         ; jump back to the caller
         jmp rax
         </pre></code>
-
-        <p>
-            Because of our unique constraints, we generally aren't allowed to use
-            <code>call</code>, <code>push</code>, <code>pop</code> or any assembly instruction that modifies the stack.
-            Instead we can use <code>jmp</code> instructions and store the return address in a register.
-        </p>
 
         <p>
             The return address is given in <code>rax</code> and the amount (in bytes) to allocate is given in
@@ -205,8 +211,7 @@
         }
 
         // update the size and rsp
-        let size = *ptr;
-        *(ptr - amount) = size + amount;
+        *(ptr - amount) = *ptr + amount;
         rsp -= amount;
     }
         </pre></code>
@@ -219,13 +224,13 @@
 
         <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                         ↑               ↑
+                         |               |
                         ptr             rsp                                                      
         </pre></code>
 
         <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=2&gt;          &lt;DATA&gt; &lt;SIZE=1&gt;
-                         ↑               ↑
+                         |               |
                         ptr             rsp                                                      
         </pre></code>
 
@@ -233,40 +238,40 @@
 
         <code lang="simple"><pre>
     &lt;DATA&gt; &lt;DATA&gt; &lt;DATA&gt; &lt;SIZE=3&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                ↑               ↑
+                                |               |
                            (ptr - amount)      rsp                                                      
         </pre></code>
 
         <p>
-            Nice! Dynamic stack memory! But, there is still one more issue, and that is pointers. If we
+            Nice! Dynamic stack memory! But, there is still one more issue, and that is <em>pointers</em>. If we
             resize memory before a pointer, then everything get's pushed around and our pointer no longer points to the
             right object. Oh No!
         </p>
 
         <code lang="simple"><pre>
     &lt;DATA&gt; &lt;SIZE=1&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                  ↑
+                                  |
                             ptr (2nd item)
         </pre></code>
 
         <code lang="simple"><pre>
     &lt;DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;NEW DATA&gt; &lt;SIZE=4&gt; &lt;DATA&gt; &lt;SIZE=1&gt;
-                                  ↑
+                                  |
                             ptr (invalidated)
         </pre></code>
 
         <p>
             The solution? Instead of storing the address of our data, we can
             store the index. Then we can convert that index into an
-            address when we need to use it.
+            address when we need to use it. For example, instead of <code>0x123456789abcdef</code> we store <code>0</code> for the first item in the stack.
         </p>
 
         <p>
             We can convert an index into an address by calculating how many steps backwards our data is from the end of
             the stack with
-            <code>length - index - 1</code>. For example, if our stack has <code>3</code> elements and we want to find
+            <code>length - index - 1</code>. For example, if our stack has <code>5</code> elements and we want to find
             the data at index
-            <code>1</code> we would need to move <code>3-1-1 = 1</code> step backwards from the end of the stack. Here
+            <code>2</code> we would need to move <code>5-2-1 = 2</code> step backwards from the end of the stack. Here
             is
             the pseudo-code for converting an index into an
             address.
@@ -309,10 +314,8 @@
         <p>
             I'll be glossing over the whole "making a language" part in this blog post. I highly suggest you try
             following <a href="http://github.com/kanaka/mal/">Make a Lisp</a> and <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/">LLVM Kaleidoscope</a> if you're feeling
-            up for a challenge. They'll teach you a lot about writing your own languages. You can see my own implementation of "Make a Lisp" <a href="https://github.com/ogghostjelly/mal">here</a>.
+            up for a challenge. They'll teach you a lot about writing your own languages. You can see my own implementation of "Make a Lisp", <a href="https://github.com/ogghostjelly/mal">here</a>.
         </p>
-
-        <p>This is going to be quite difficult...</p>
 
         <p>
             For simplicity, the language will compile to NASM assembly. First we have a tokenizer. It'll convert a
@@ -361,14 +364,61 @@
         </pre></code>
 
         <p>
-            There is a
-            <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html#binary-expression-parsing">
-                section in LLVM Kaleidoscope
-            </a> about parsing "binary expressions", and the first part of <a href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a>
-            shows how to implement a binary expression parser.
-            If you want to try this too and are a beginner, I highly suggest using a lisp-like
-            syntax since it is much easier to parse.
+            Parsing simple expressions like <code>set x = 3;</code> into an AST is pretty easy, but for more complicated expressions like <code>2+3*4</code> you have to start worrying about operator precedence. There's a wonderful <a href="https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html#binary-expression-parsing">section in LLVM Kaleidoscope</a> and the first part of <a href="https://youtu.be/NxiKlnUtyio?t=454">this youtube video</a> that both show examples of a binary expression parser.
         </p>
+
+        <p>
+            If you want to try implementing a parser yourself and are a beginner. I highly suggest using lisp-like syntax since it is much easier to parse. There is a <a href="https://github.com/kanaka/mal/blob/master/process/guide.md#step-1-read-and-print">section in Make a Lisp</a> that might be helpful for you.
+        </p>
+
+        <p>
+            In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> parses a "primary" expression, then checks the right-hand-side for an operand (like <code>+</code>, <code>*</code>, etc.). A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
+        </p>
+
+        <code lang="simple"><pre>
+    primary  operand
+      |      |
+      2      +
+        </pre></code>
+
+        <p>
+            If the operand has higher precedence than the "maximum" then we just return the primary expression and allow some other function higher in the call stack to parse the rest of it. We will be utilizing the "maximum" precedence later, but for now it can just default to <code>0</code>.
+        </p>
+
+        <p>
+            If the operand has lower precedence than the "maximum", the parser then parses the next primary and next operand.
+        </p>
+
+        <code lang="simple"><pre>
+      prev  next
+       |     |
+    2 [+] 3 [*]
+    |     |
+   lhs   rhs
+        </pre></code>
+
+        <p>
+            It checks if the precedence of the previous operand is more or less than the next operand.
+            If the next operand has higher precedence then recursively call the parser with the "maximum" set to the previous operand's precedence.
+        </p>
+
+        <code><pre>
+    if prev < next {
+        rhs = parser(prev.precedence, rhs);
+    }
+        </pre></code>
+
+        <p>Then we join the left-hand-side and right-hand-side.</p>
+
+        <code><pre>
+    lhs = Ast(lhs, prev, rhs)
+        </pre></code>
+
+        <p>And recursively call again with the same "maximum" value.</p>
+
+        <code><pre>
+    parser(maximum, lhs)
+        </pre></code>
 
         <p>
             Now we have an AST that can represent function definitions, variable assignments,
@@ -379,9 +429,7 @@
         </p>
 
         <p>
-            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no
-            debugger works
-            because your stack is too screwed, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
+            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no debugger works because your stack is too screwed, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
         </p>
 
         <p>
@@ -399,7 +447,7 @@
         // allocate size bytes
         // set the last 8 bytes to size
         write_asm!("sub rsp, {size}");
-        write_asm!("sub qword [rsp], {size}");
+        write_asm!("mov qword [rsp], {size}");
         codegen.stack_size += 1;
 
         return idx;
@@ -410,7 +458,7 @@
 
         <code lang="c"><pre>
     fn pop(codegen: &Codegen) {
-        write_asm!("sub qword [rsp], {size}");
+        write_asm!("add rsp, [rsp]");
         codegen.stack_size -= 1;
     }
         </pre></code>
@@ -452,19 +500,15 @@
 
         // dereference the indicies
         codegen.idx2addr(a, "rbx");
-        codegen.idx2addr(b, "mov qword [rsp], 16");
+        codegen.idx2addr(b, "rcx");
         write_asm!("mov rbx, [rbx+8]");
         write_asm!("mov rcx, [rcx+8]");
 
         // add the numbers
         write_asm!("add rbx, rcx");
 
-        // allocate the result
-        let idx = codegen.alloc(16);
-        codegen.idx2addr(idx, "rdx");
-        write_asm!("mov qword [rdx], rbx");
-
-        return idx;
+        // allocate and return the result
+        return codegen.codegen_number("rbx");
     }
         </pre></code>
 
@@ -536,7 +580,7 @@
 
         <h2>a cake walk (in comparison)</h2>
 
-        hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. We check for a hash collision and if there was, resize the array. If there wasn't just insert. Here is the pseudo-code:
+        hash-maps are simple actually, they're just arrays with clever indexing. We take a key, hash it, modulo it over the length of the array, and that's our index. If there was a hash collision (two keys share the same hash) then resize the array and try again.
 
         <code lang="c"><pre>
         struct Bucket {
