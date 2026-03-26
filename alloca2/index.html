@@ -108,7 +108,7 @@
 </ul>
 <h2>deception</h2>
 <p>
-            In the <a href="alloca.html">previous episode</a> of alloca shenanigans, I said this.
+            In the <a href="../alloca.html">previous episode</a> of alloca shenanigans, I said this.
         </p>
 <q>
             The stack is like a stack of plates. You can't change things in the middle or the
@@ -259,7 +259,7 @@
         </p>
 <p>
             You can download an ASM code example <a href="example.asm">here</a>, but you may need an
-            <a href="debugger.html">exotic debugger</a> to be able to visualise how stack memory changes.
+            <a href="../debugger.html">exotic debugger</a> to be able to visualise how stack memory changes.
         </p>
 <h2>a language</h2>
 <p>
@@ -410,24 +410,24 @@
             compile it into a binary.
         </p>
 <p>
-            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no debugger works because your stack is too screwed, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
+            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no debugger works because your stack is too screwed, which is why I wrote my own <a href="../debugger.html">(wink wink nudge nudge)</a>.
         </p>
 <p>
-            Let's rewrite some of our assembly functions in our code-generator. For our <code><tok type="symbol">alloc</tok></code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
+            Let's rewrite some of our assembly functions in our code-generator. For our <code><tok type="symbol">alloc</tok></code> function, we'll make sure to keep track of the stack length and return the index of the allocated data in the stack.
         </p>
 <code lang="c"><pre>
     <tok type="keyword">struct</tok> <tok titlecase type="symbol">Codegen</tok> <tok o="{" type="operand">{</tok>
-        <tok type="symbol">stack_size</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok>
+        <tok type="symbol">stack_len</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok>
     <tok o="}" type="operand">}</tok>
     
     <tok type="keyword">fn</tok> <tok type="function">alloc</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">size</tok><tok o=":" type="operand">:</tok> <tok type="symbol">u64</tok><tok o=")" type="operand">)</tok> <tok o="-" type="operand">-</tok><tok o="&gt;" type="operand">&gt;</tok> <tok type="symbol">usize</tok> <tok o="{" type="operand">{</tok>
-        <tok type="type">let</tok> <tok type="symbol">idx</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok><tok o=";" type="operand">;</tok>
+        <tok type="type">let</tok> <tok type="symbol">idx</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_len</tok><tok o=";" type="operand">;</tok>
         
         <tok type="comment">// allocate size bytes</tok>
         <tok type="comment">// set the last 8 bytes to size</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"sub rsp, {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov qword [rsp], {size}"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok> <tok o="+" type="operand">+</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
+        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_len</tok> <tok o="+" type="operand">+</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
 
         <tok type="keyword">return</tok> <tok type="symbol">idx</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
@@ -436,7 +436,7 @@
 <code lang="c"><pre>
     <tok type="keyword">fn</tok> <tok type="function">pop</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"add rsp, [rsp]"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
-        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok> <tok o="-" type="operand">-</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
+        <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_len</tok> <tok o="-" type="operand">-</tok><tok o="=" type="operand">=</tok> <tok type="number">1</tok><tok o=";" type="operand">;</tok>
     <tok o="}" type="operand">}</tok>
         </pre></code>
 <p>Then we can implement our <code><tok type="symbol">idx2addr</tok></code> function. It will take in an index and return the address in a register.</p>
@@ -444,7 +444,7 @@
     <tok type="keyword">fn</tok> <tok type="function">idx2addr</tok><tok o="(" type="operand">(</tok><tok type="symbol">codegen</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok titlecase type="symbol">Codegen</tok><tok o="," type="operand">,</tok> <tok type="symbol">idx</tok><tok o=":" type="operand">:</tok> <tok type="symbol">usize</tok><tok o="," type="operand">,</tok> <tok type="symbol">reg</tok><tok o=":" type="operand">:</tok> <tok o="&amp;" type="operand">&amp;</tok><tok type="symbol">str</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
         <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"mov {reg}, rsp"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
 
-        <tok type="keyword">for</tok> <tok o="(" type="operand">(</tok><tok type="type">let</tok> <tok type="symbol">i</tok> <tok o="=" type="operand">=</tok> <tok type="number">0</tok><tok o=";" type="operand">;</tok> <tok type="symbol">i</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_size</tok><tok o="-" type="operand">-</tok><tok type="symbol">idx</tok><tok o="-" type="operand">-</tok><tok type="number">1</tok><tok o=";" type="operand">;</tok> <tok type="symbol">i</tok><tok o="+" type="operand">+</tok><tok o="+" type="operand">+</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+        <tok type="keyword">for</tok> <tok o="(" type="operand">(</tok><tok type="type">let</tok> <tok type="symbol">i</tok> <tok o="=" type="operand">=</tok> <tok type="number">0</tok><tok o=";" type="operand">;</tok> <tok type="symbol">i</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">codegen</tok><tok o="." type="operand">.</tok><tok type="symbol">stack_len</tok><tok o="-" type="operand">-</tok><tok type="symbol">idx</tok><tok o="-" type="operand">-</tok><tok type="number">1</tok><tok o=";" type="operand">;</tok> <tok type="symbol">i</tok><tok o="+" type="operand">+</tok><tok o="+" type="operand">+</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
             <tok type="function">write_asm</tok><tok o="!" type="operand">!</tok><tok o="(" type="operand">(</tok><tok type="string">"add {reg}, [{reg}]"</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         <tok o="}" type="operand">}</tok>
     <tok o="}" type="operand">}</tok>
@@ -594,7 +594,7 @@
             That's it! This is the end of the post. Obviously, this is completely useless and no one would want to use a
             stack like this because of the *awful* performance it gives. I mean look how many instructions a simple
             stack allocation
-            takes... and oh god, the time complexity! It was fun
+            takes... and <em>oh god</em>, the time complexity! It was fun
             though!
         </p>
 </main>

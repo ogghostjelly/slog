@@ -109,7 +109,7 @@
 
         <h2>deception</h2>
         <p>
-            In the <a href="alloca.html">previous episode</a> of alloca shenanigans, I said this.
+            In the <a href="../alloca.html">previous episode</a> of alloca shenanigans, I said this.
         </p>
 
         <q>
@@ -292,7 +292,7 @@
 
         <p>
             You can download an ASM code example <a href="example.asm">here</a>, but you may need an
-            <a href="debugger.html">exotic debugger</a> to be able to visualise how stack memory changes.
+            <a href="../debugger.html">exotic debugger</a> to be able to visualise how stack memory changes.
         </p>
 
         <h2>a language</h2>
@@ -478,26 +478,26 @@
         </p>
 
         <p>
-            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no debugger works because your stack is too screwed, which is why I wrote my own <a href="debugger.html">(wink wink nudge nudge)</a>.
+            The code-generator was the hardest part to do. It is so hard to debug thousand-line assembly files where no debugger works because your stack is too screwed, which is why I wrote my own <a href="../debugger.html">(wink wink nudge nudge)</a>.
         </p>
 
         <p>
-            Let's rewrite some of our assembly functions in our code-generator. For our <code>alloc</code> function, we'll make sure to keep track of the stack size and return the index of the allocated data in the stack.
+            Let's rewrite some of our assembly functions in our code-generator. For our <code>alloc</code> function, we'll make sure to keep track of the stack length and return the index of the allocated data in the stack.
         </p>
 
         <code lang="c"><pre>
     struct Codegen {
-        stack_size: usize,
+        stack_len: usize,
     }
     
     fn alloc(codegen: &Codegen, size: u64) -> usize {
-        let idx = codegen.stack_size;
+        let idx = codegen.stack_len;
         
         // allocate size bytes
         // set the last 8 bytes to size
         write_asm!("sub rsp, {size}");
         write_asm!("mov qword [rsp], {size}");
-        codegen.stack_size += 1;
+        codegen.stack_len += 1;
 
         return idx;
     }
@@ -508,7 +508,7 @@
         <code lang="c"><pre>
     fn pop(codegen: &Codegen) {
         write_asm!("add rsp, [rsp]");
-        codegen.stack_size -= 1;
+        codegen.stack_len -= 1;
     }
         </pre></code>
 
@@ -518,7 +518,7 @@
     fn idx2addr(codegen: &Codegen, idx: usize, reg: &str) {
         write_asm!("mov {reg}, rsp");
 
-        for (let i = 0; i < codegen.stack_size-idx-1; i++) {
+        for (let i = 0; i < codegen.stack_len-idx-1; i++) {
             write_asm!("add {reg}, [{reg}]");
         }
     }
@@ -686,7 +686,7 @@
             That's it! This is the end of the post. Obviously, this is completely useless and no one would want to use a
             stack like this because of the *awful* performance it gives. I mean look how many instructions a simple
             stack allocation
-            takes... and oh god, the time complexity! It was fun
+            takes... and <em>oh god</em>, the time complexity! It was fun
             though!
         </p>
     </main>
