@@ -13,6 +13,14 @@
             margin: 8%;
         }
 
+        a {
+            color: cyan;
+        }
+
+        a:visited {
+            color: #c85bff;
+        }
+
         a:hover {
             background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
             -webkit-background-clip: text;
@@ -97,8 +105,7 @@
             <br />
             (it's good security to randomize the data on disk before encrypting, the Arch wiki has a useful
             tutorial on that
-            <a
-                href="https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation#dm-crypt_wipe_on_an_empty_device_or_partition">here</a>)
+            <a href="https://wiki.archlinux.org/title/Dm-crypt/Drive_preparation#dm-crypt_wipe_on_an_empty_device_or_partition">here</a>)
         </p>
         <code>
             <pre>
@@ -180,8 +187,7 @@
         </code>
         <p>
             There are still a few essential changes to be made to the configurations before we can run
-            <code>nixos-install</code>. Most can be found <a
-                href="https://nixos.wiki/wiki/NixOS_Installation_Guide#Create_NixOS_config">here</a> but we'll also need
+            <code>nixos-install</code>. Most can be found <a href="https://nixos.wiki/wiki/NixOS_Installation_Guide#Create_NixOS_config">here</a> but we'll also need
             to make a few more edits to support LUKS and to wipe our ephemeral storage on reboot.
         </p>
         <p>

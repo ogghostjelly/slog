@@ -13,6 +13,14 @@
             margin: 8%;
         }
 
+        a {
+            color: cyan;
+        }
+
+        a:visited {
+            color: #c85bff;
+        }
+
         a:hover {
             background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
             -webkit-background-clip: text;
@@ -389,7 +397,7 @@
         </pre></code>
 
         <p>
-            If the operand has lower precedence than the <code>minimum</code>, we just return the <code>lhs</code> and allow some other function higher in the call stack to parse the rest of it.
+            If the operand has lower precedence than the <code>minimum</code>, we just return <code>lhs</code> and allow some other function higher in the call stack to parse the rest of it.
         </p>
 
         <code><pre>
@@ -675,7 +683,7 @@
         </pre></code>
 
         <p>
-            There are many different techniques that can avoid extra reallocation by
+            There are many different techniques that can avoid hash collisions and excessive reallocation by
             using adjacent slots or more "spread-out" hash functions. Honorable mention: <a href="https://probablydance.com/2018/06/16/fibonacci-hashing-the-optimization-that-the-world-forgot-or-a-better-alternative-to-integer-modulo/">
                 Fibonacci Hashing</a>
         </p>
