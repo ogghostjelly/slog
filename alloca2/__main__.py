@@ -120,7 +120,7 @@ while True:
     soup = bs4.BeautifulSoup(html_doc, 'html.parser')
 
     for code in soup.find_all("code"):
-        lang = code.attrs.get("lang") or "c"
+        lang = code.attrs.get("lang") or "simple"
         pre: bs4.Tag = code.findChild("pre")
         if pre is None: pre = code
         pre.contents = tokenize(soup, lang, pre.get_text())

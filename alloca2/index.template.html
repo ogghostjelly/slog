@@ -376,7 +376,7 @@
             In summary, a binary expression parser that uses <a href="http://en.wikipedia.org/wiki/Operator-precedence_parser">operator-precedence parsing</a> will take the following steps. First, it parses a "primary" expression, we will call it <code>lhs</code> for "left-hand-side". A primary expression is any expression without an operand. That means numbers, or booleans, or strings, but also any expression wrapped in parenthesis.
         </p>
 
-        <p>Then we can write the signature for our parsing binary operator function. The <code>minimum</code> parameter will be useful later.</p>
+        <p>Then we can write the function signature for our binary operator parser. The <code>minimum</code> parameter will be useful later.</p>
 
         <code lang="c"><pre>
     fn parse_binop(minimum: usize, lhs: Expression);
@@ -448,7 +448,7 @@
         <p>And recursively call again with the same "minimum" value.</p>
 
         <code lang="c"><pre>
-    parse_binop(minimum, lhs)
+    return parse_binop(minimum, lhs);
         </pre></code>
 
         <p>Here is the full pseudo-code:</p>
@@ -473,7 +473,7 @@
 
         lhs = Ast(lhs, prev, rhs)
 
-        parse_binop(minimum, lhs)
+        return parse_binop(minimum, lhs);
     }
         </pre></code>
 
