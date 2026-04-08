@@ -40,7 +40,8 @@
         }
     </style>
     <style>
-        .post {
+        article,
+        footer {
             background-color: lightblue;
             color: black;
         }
@@ -48,67 +49,69 @@
 </head>
 
 <body>
-    <main>
+    <header>
         <h1>slog</h1>
         <p>
             i got tired of css, all the budget went into the links
         </p>
-
-        <div class="post">
+    </header>
+    <main>
+        <article>
             <a href="only-css-you-need.html">CSS corollary.</a>
             <p>
                 Everything else is superfluous.
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="garfbag.html">In memory of garfbag.</a>
             <p>
                 I miss him already.
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="etaj-kreitajxoj.html">A little game I've been working on</a>
             <p>
                 I didn't think I'd share this game since I rarely share unfinished projects, but I've realized that this game is never going to be finished because of a core design flaw that will never make me satisfied with it.
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="alloca2/index.html">Resizable stack allocations using a custom language, compiler, and debugger for fun and profit</a>
             <p>
                 The stack is not what it seems <em>(oooo mysterious oooo)</em>
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="debugger.html">Writing your own Linux debugger in Rust</a>
             <p>
                 It's easy and useful!
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="one-raga-gleach.html">One Raga to a Disco Gleach</a>
             <p>
                 Thoughts on new gleach album and a random music video I stumbled on.
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="alloca.html">alloca in Rust using inline ASM</a>
             <p>
                 Is it possible to dynamically allocate on the stack?
             </p>
-        </div>
-        <div class="post">
+        </article>
+        <article>
             <a href="install-nixos.html">Installing NixOS impermanence with LUKS</a>
             <p>
                 I enumerate how I setup my NixOS impermanence setup on a VM using LUKS disk encryption.
                 It uses ext4 for both the persistent and ephemeral storage and erases the ephemeral
                 storage on reboot.
             </p>
-        </div>
+        </article>
     </main>
+    <nav>
+        <p><a href="..">snap back to reality</a> oh there goes gravity.</p>
+    </nav>
     <footer>
-        <a href="..">snap back to reality</a> oh there goes gravity.
-
-        <p class="post">
+        <p>
             I have decided that this slog will be pure HTML, CSS and NO JS. I think it'll be fun.
             I have decided that <a href="repetition-is-good.html">repetition is good</a>. I will grow this website like.
         </p>

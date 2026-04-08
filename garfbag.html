@@ -19,7 +19,7 @@
             background-repeat: repeat;
         }
 
-        p {
+        figcaption {
             font-family: 'Times New Roman', Times, serif;
             font-style: oblique;
         }
@@ -31,14 +31,18 @@
 </head>
 
 <body>
-    <a href="index.html">go back</a>
+    <nav>
+        <a href="index.html">go back</a>
+    </nav>
 
     <main>
         <!-- so annoying they deprecated this tag in 2004 -->
         <!-- it still works on most browsers! and it does what css can't (center a div) -->
         <center>
-            <img src="assets/garfbag.gif">
-            <p>garfbag, in loving memory. &lt;3</p>
+            <figure>
+                <img src="assets/garfbag.gif" alt="garfbag in all his glory">
+                <figcaption>garfbag, in loving memory. &lt;3</figcaption>
+            </figure>
         </center>
     </main>
 </body>
