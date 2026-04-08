@@ -21,6 +21,23 @@
             height: auto;
         }
 
+        code {
+            color: paleturquoise;
+            white-space: pre;
+        }
+
+        pre {
+            overflow-y: scroll;
+        }
+
+        a {
+            color: cyan;
+        }
+
+        a:visited {
+            color: #c85bff;
+        }
+
         a:hover {
             background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
             -webkit-background-clip: text;
@@ -134,8 +151,7 @@
 
         <code><pre>
     (def! tick (fn* []
-        (move (posof (fst (scan))))))</pre>
-        </code>
+        (move (posof (fst (scan))))))</pre></code>
 
         <ul>
             <li><code>tick</code> - is a special name for a function that is ran every frame.</li>
