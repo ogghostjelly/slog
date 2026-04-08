@@ -1,0 +1,75 @@
+# Probe functions
+log           Log a message to the console.
+clear-logs    Clear the console.
+energy        Get remaining energy.
+max-energy    Get max energy.
+matter        Get amount of stored matter.
+max-space     Get max amount of space.
+space-used    Get how much space is used up.
+space-left    Get how much space is left.
+move          Move in a given direction.
+recharge      Recharge the probe with the matter onboard.
+has-module    Check if the probe has a certain module.
+close-port    Close the material port.
+open-port     Open the material port.
+port?         Check the material port status.
+drop-matter   Drop an amount of matter.
+
+# Radar functions
+scan      Scan the surroundings.
+posof     Get the position of an object id.
+matter?   Check if the object id is matter or something else.
+
+# Radio functions
+send   Send a message to the object id.
+recv   Recv a message.
+
+# Controller functions
+press?      Check if a button is pressed.
+mouse-pos   Get the mouse position.
+
+# Cannon functions
+fire   Fire a laser at the given direction.
+
+# Math functions
++   Add
+-   Subtract
+*   Multiply
+/   Divide
+%   Modulus
+
+# Comparison functions
+>     Is greater than
+>=    Is greater than or equal
+<     Is less than
+<=    Is less than or equal
+=     Is equal
+!=    Is not equal
+not   Not
+and   And
+
+# Data-structure functions
+fst      Get the first element of a list.
+snd      Get the second element of a list.
+nth      Get the nth element of a list.
+rest     Get the rest of a list
+cons     Get a new list with the element prepended, e.g (cons 1 '(2 3))
+empty?   Check if the container is empty.
+get      Get the key or index from a list or hashmap.
+len      Get the length of a container.
+
+# Control functions
+def!             Bind a variable to a value, e.g (def! x 3)
+set!             Set a new value to an existing variable, e.g (set! x 5)
+let*             Create a new temporary scope, e.g (let* [a 1 b 2] (+ a b))
+if               If statement, e.g (if (> 1 2) true false)
+fn*              Create an anonymous function, e.g (fn* [x] (+ x 1))
+macro*           Convert a function into a macro, e.g (macro* (fn* [a b] `(+ ~a ~b)))
+do               Perform each operation in sequence, e.g (do (+ 1 2) (+ 3 4))
+quote            Quote, shorthand (')
+quasiquote       Quasiquote, shorthand (`)
+unquote          Unquote, shorthand (~)
+splice-unquote   Splice-unquote, shorthand (~@)
+throw            Throw an error.
+apply            Manually apply a function, e.g (apply + '(1 2 3))
+typeof           Get the type of a value.

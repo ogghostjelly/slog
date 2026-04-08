@@ -1,0 +1,57 @@
+(def! dbg (macro* (fn* [x]
+	`(log (quote ~x) :=> ~x))))
+
+(dbg (+ 1 2))
+
+(def! list '(a b c))
+(dbg '(a b c))
+(dbg `(~@list d e f))
+(dbg `(1 2 3 ~list 1 2 3))
+
+(set! list '(1 2 3))
+(dbg (fst list))
+(dbg (snd list))
+(dbg (nth 2 list))
+(dbg (cons 0 list))
+(dbg (rest list))
+(dbg (empty? list))
+(dbg (len list))
+
+(def! map { :a "hi" :b 2 :c 3 })
+(set! (map :a) 1)
+(dbg (get map :a))
+
+; only nil and false are falsey
+; everything else is truthy
+(dbg (not nil))
+(dbg (not false))
+(dbg (not true))
+(dbg (not 0))
+
+(dbg (>= 3 2))
+(dbg (>= 2 3))
+(dbg (and (not false) true))
+(dbg (= (+ 1 2) (+ 2 1)))
+
+(log (if (>= 3 2)
+	(+ 1 2)
+	(+ 3 4)))
+
+(dbg (do 1 2 3))
+
+(dbg (let* [a 1 b 2] (+ a b)))
+
+(def! add2 (fn* [a b] (+ a b)))
+(dbg (add2 1 2))
+
+(def! addany (fn* [& xs] (apply + xs)))
+(dbg (addany 1 2 3 4))
+
+(def! noop (fn* [&]))
+(dbg (noop 1 2 3 4))
+
+(dbg (typeof :a))
+(dbg (typeof "b"))
+(dbg (typeof 'c))
+
+(throw "The End!")

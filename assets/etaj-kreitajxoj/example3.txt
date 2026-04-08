@@ -1,0 +1,95 @@
+(def! defn! (macro* (fn*
+	[name params & body]
+	`(def! ~name (fn* ~params ~@body)))))
+
+(def! defmacro! (macro* (fn*
+	[name params & body]
+	`(def! ~name (macro* (fn* ~params ~@body))))))
+
+(def! cond (macro* (fn*
+	[& pairs]
+	(if (!= (% (len pairs) 2) 0)
+		(throw "uneven number of arguments to cond"))
+	`(if ~(fst pairs)
+		~(snd pairs)
+		(cond ~@(rest (rest pairs)))))))
+
+(def! map (fn* [f xs]
+	(if (empty? xs)
+		()
+		(cons (f (fst xs)) (map f (rest xs))))))
+
+(def! foreach (fn* [xs f]
+	(if (empty? xs)
+		()
+		(do (f (fst xs)) (foreach (rest xs) f)))))
+
+(def! while (fn* [xs f]
+	(let* [value (xs)]
+		(if (!= value nil)
+			(do
+				(f value)
+				(while xs f))))))
+
+(def! filter (fn* [f xs]
+	(if (empty? xs)
+		()
+		(if (f (fst xs))
+			(cons (fst xs) (filter f (rest xs)))
+			(filter f (rest xs))))))
+
+;; Chain Operator
+;; 
+;; (. a b c) becomes (fn* [x] (a (b (c x))))
+;;
+;; # Examples
+;; ```
+;; (filter (. not matter?) (scan))
+;; ```
+(def! . (fn* [& fs]
+	(def! chain (fn* [fs xs]
+		(if (= (len fs) 1)
+			(apply (fst fs) xs)
+			((fst fs) (chain (rest fs) xs)))))
+	(fn* [& xs] (chain fs xs))))
+
+;; Right-Hand-Side Partial Application Operator
+;;
+;; (>> + 1 2 3) becomes (fn* [...] (+ ... 1 2 3))
+;;
+;; # Examples
+;; 
+;; Add one to each element in a list.
+;; ```
+;; (map (>> + 1) '(1 2 3))
+;; ```
+;; 
+;; Check if each element is even.
+;; ```
+;; (map (. (>> = 0) (>> % 2)) '(1 2 3 4))
+;; ```
+(def! >> (fn* [f & ys]
+	(fn* [& xs] (apply f `(~@xs ~@ys)))))
+
+;; Left-Hand-Side Partial Application Operator
+;; (<< + 1 2 3) becomes (fn* [...] (+ 1 2 3 ...))
+;;
+;; # Examples
+;; 
+;; Divide each element in a list. (2/x)
+;; ```
+;; (map (<< / 2) '(1 2 3 4))
+;; ```
+(def! << (fn* [f & ys]
+	(fn* [& xs] (apply f `(~@ys ~@xs)))))
+
+(def! mktimer (fn* [max-time]
+	(def! timer 0)
+	
+	(fn* []
+		(set! timer (+ timer 1))
+		(if (>= timer max-time)
+			(do
+				(set! timer 0)
+				true)
+			false))))
