@@ -29,7 +29,7 @@
             filter: drop-shadow(blue 0px 0px 2px);
         }
 
-        blockquote {
+        aside {
             background-color: black;
             padding: 8px;
             border-radius: 4px;
@@ -100,9 +100,9 @@
             <li>Cannon - Fire a laser!</li>
         </ul>
 
-        <blockquote>
+        <aside>
             I don't like this module system... I think I'll rework it in the next rewrite. I rewrite this project all the time. There are like 3 other games with similar but slightly different ideas.
-        </blockquote>
+        </aside>
 
         <p>
             At the very bottom of the right-hand-side panel you can see <code>Space</code> and <code>Matter</code>. <code>Matter</code> is the game's primary resource. You get it by shooting asteroids. <code>Matter</code>, just like a module, takes up some space. If you run out of space you can't hold anything else. By default, the probe will immediately pickup any matter in it's vicinity, you can turn it off by changing the <code>Material Port Status</code>.
@@ -112,9 +112,9 @@
             Now for the most important part of all. In the center of the right-hand-side panel is the script editor. That is where you can write lisp code and program the space probe. The lisp programming language you're seeing is not any lisp that you know of. It's a custom made language for this game specifically.
         </p>
 
-        <blockquote>
+        <aside>
             I don't like the script editor panel! You should be able to split up your scripts into multiple files but the script editor doesn't let you do that. Everything has to be in one big ugly text box.
-        </blockquote>
+        </aside>
 
         <p>
             I was thinking about giving the player a HTTP server that interacts with the game. Then they could code in any programming language they want and any IDE they want. They just need to send HTTP requests to the game server to code the probes.
@@ -151,9 +151,9 @@
             <source src="assets/etaj-kreitajxoj/example5.mp4" type="video/mp4">
         </video>
 
-        <blockquote>
+        <aside>
             It's very live-coding-esque. I hope to keep it that way in future iterations. Maybe future versions can take influence from <a href="https://tidalcycles.org">tidalcycles</a>!
-        </blockquote>
+        </aside>
 
         <p>
             As you can see, it's very bare-bones. You just mine asteroids, collect matter, and recharge. There's no way to reproduce and create an army of probes. There's no way to kill space probes and steal their modules, or even swap out your existing modules (since the modules are hard-coded in!). That's exactly why I won't release the game, because it's not really a game, just a simple proof-of-concept.
