@@ -29,6 +29,13 @@
             filter: drop-shadow(blue 0px 0px 2px);
         }
 
+        blockquote {
+            background-color: black;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid slategrey;
+        }
+
         @keyframes rainbow_animation {
 
             0%,
@@ -62,7 +69,7 @@
         </p>
 
         <p>
-            A big thing I wanted for this project was emergent behaviour. A probe has a scanner that can search nearby surroundings, but the scanner can't tell the difference between a probe or an asteroid. Luckily, the probes can send messages to each other. It's your job as the player to code a system where probes can ping each other to verify that they are an allied probe and not an enemy or an asteroid.
+            A big thing I wanted for this project was emergent behaviour. A probe has a scanner that can search nearby surroundings, but the scanner can't tell the difference between an allied probe or an asteroid. Luckily, the probes can send messages to each other. It's your job as the player to code a system where probes can ping each other to verify that they are an allied probe and not an enemy or an asteroid.
         </p>
 
         <p>
@@ -93,9 +100,9 @@
             <li>Cannon - Fire a laser!</li>
         </ul>
 
-        <p>
+        <blockquote>
             I don't like this module system... I think I'll rework it in the next rewrite. I rewrite this project all the time. There are like 3 other games with similar but slightly different ideas.
-        </p>
+        </blockquote>
 
         <p>
             At the very bottom of the right-hand-side panel you can see <code>Space</code> and <code>Matter</code>. <code>Matter</code> is the game's primary resource. You get it by shooting asteroids. <code>Matter</code>, just like a module, takes up some space. If you run out of space you can't hold anything else. By default, the probe will immediately pickup any matter in it's vicinity, you can turn it off by changing the <code>Material Port Status</code>.
@@ -105,9 +112,9 @@
             Now for the most important part of all. In the center of the right-hand-side panel is the script editor. That is where you can write lisp code and program the space probe. The lisp programming language you're seeing is not any lisp that you know of. It's a custom made language for this game specifically.
         </p>
 
-        <p>
+        <blockquote>
             I don't like the script editor panel! You should be able to split up your scripts into multiple files but the script editor doesn't let you do that. Everything has to be in one big ugly text box.
-        </p>
+        </blockquote>
 
         <p>
             I was thinking about giving the player a HTTP server that interacts with the game. Then they could code in any programming language they want and any IDE they want. They just need to send HTTP requests to the game server to code the probes.
@@ -135,7 +142,7 @@
         </p>
 
         <p>
-            I wrote a bunch of <a href="assets/etaj-kreitajxoj/example2.txt">code examples</a>, <a href="assets/etaj-kreitajxoj/example3.txt">utility functions</a> and a list of <a href="assets/etaj-kreitajxoj/example4.txt">every function in the game</a>. I wouldn't suggest that you read any of them since you'd likely waste your time, I will never release the game, but it's there anyway.
+            I wrote a bunch of <a href="assets/etaj-kreitajxoj/example2.txt">code examples</a>, <a href="assets/etaj-kreitajxoj/example3.txt">utility functions</a> and a list of <a href="assets/etaj-kreitajxoj/example4.txt">every function in the game</a>. <strong>I wouldn't suggest that you read any of them</strong> since you'd likely waste your time, I will never release the game, but I'll link it there anyway.
         </p>
 
         <p>Here's a video example of me playing the game.</p>
@@ -145,7 +152,7 @@
         </video>
 
         <p>
-            As you can see, it's very bare-bones. You just mine asteroids, collect matter and recharge. There's no way to make more space probes and duplicate yourself to create an army. There's no way to kill space probes and steal their modules. There's no way to even change your existing modules, since the modules are hard-coded in! That's exactly why I won't release the game, because it's not really a game, just a simple proof-of-concept.
+            As you can see, it's very bare-bones. You just mine asteroids, collect matter, and recharge. There's no way to reproduce and create an army of probes. There's no way to kill space probes and steal their modules, or even swap out your existing modules (since the modules are hard-coded in!). That's exactly why I won't release the game, because it's not really a game, just a simple proof-of-concept.
         </p>
 
         <p>
@@ -161,17 +168,17 @@
         </video>
 
         <p>
-            You'll notice the look is very familiar, haha! that's because I re-used a lot of the code for the space probe project.
+            You'll notice the look is very familiar, haha! that's because I reused a lot of the code for the space probe project.
         </p>
 
-        <p>I wanted all the controls to be diegetic. If you wanted to manually control the ship. You'd have to add a button tile that you can press and then you'd have to program "if button press then do this" into the logic unit. The logic unit is that spinny light-show. Its like the brain of the ship and you program it to do things.</p>
+        <p>I wanted all the controls to be diegetic. If you wanted to manually control the ship. You'd have to add a button tile that you can press and then you'd have to program "if button press then turn on this thruster" into the logic unit. The logic unit is that spinny light-show. Its like the brain of the ship and you program it to do things.</p>
 
         <p>
-            You also have a radar, reciever, thruster, laser, drill and dynamite. I think you can guess what those things do.
+            You also have a radar, reciever, thruster, laser, drill, and dynamite. I think you can guess what those things do.
         </p>
 
         <p>
-            You may be thinking. Wow! This game seems so much cooler than the space probe one! It's got physics and everything! And I would agree! It <i>is</i> much cooler! Only issue is performance, physics is expensive, and I wanted to try the idea without it. Which is what the space probe game was for. Also there is no custom scripting language for this one. All the logic unit code is hard-coded into the game directly.
+            You may be thinking. Wow! This game seems so much cooler than the space probe one! It's got physics and everything! And I would agree! It <i>is</i> much cooler! Only issue is performance. Physics is expensive and I wanted to try the idea without it, which is why I made the space probe game. Also there is no custom scripting language for this one. All the logic unit code is hard-coded into the game directly.
         </p>
 
         <p>Here's an example of the logic unit blowing up and sending the ship into disarray!</p>
