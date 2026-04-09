@@ -2,14 +2,14 @@ Code Soup Philosophy
 
 How to grow a website from hydrothermal soup vents.
 
-No DRY get WET. Don't don't repeat yourself.
+No DRY. get WET. Don't don't repeat yourself.
 No abstractions. Copy and paste.
-No generalisations. Localised changes only. Nothing affects the entire site.
-No static. Change everything all the time.
-No pretty websites. It's not the goal. Let it live.
-No tools. Make your own. If you know it then you can change it.
-No universal formats. If your format can't change, change the format.
-No control. Write code that changes code. Don't tame the beast. Lose control.
+No generalisations. Localised changes only. Nothing affects everything.
+No static. Everything changes all the time.
+No good websites. Living is ugly and broken. Let it live.
+No unknowns. If you don't understand it then you can't change it.
+No universal formats. Every format in a soup together.
+No control. Code changes code that changes code that
 
 This too will change.
 
