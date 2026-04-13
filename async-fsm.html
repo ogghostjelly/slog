@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog async fsm</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+            line-height: 1.5;
+            font-size: 1.5em;
+        }
+
+        img,
+        video {
+            width: 100%;
+            height: auto;
+        }
+
+        code {
+            color: paleturquoise;
+            white-space: pre;
+        }
+
+        pre {
+            overflow-y: scroll;
+        }
+
+        a {
+            color: cyan;
+        }
+
+        a:visited {
+            color: #c85bff;
+        }
+
+        a:hover {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        aside {
+            background-color: black;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid slategrey;
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Abusing async, functions to finite state machines, custom lisp</h1>
+    </header>
+    <nav>
+        <a href="index.html">go back</a>
+    </nav>
+    <main>
+        <p>useful but not prerequisite tutorial <a href="https://rust-lang.github.io/async-book/02_execution/01_chapter.html">here</a>.</p>
+
+        <p>Let's get a quick overview of how async in Rust works (and some little edge cases that we'll have to consider) before diving into the details of this post.</p>
+
+        <p>When given an async function.</p>
+
+        <code><pre>
+    async fn belated_say_hi() {
+        let a = 1;
+
+        tokio::time::sleep(Duration::from_secs(1)).await;
+
+        let b = 2;
+        let c = &b;
+
+        println!("Hello!");
+    }
+        </pre></code>
+
+        <p>Rust converts that async function into a state machine.</p>
+
+        <code><pre>
+    enum BelatedSayHiFSM {
+        BeforeSleep {
+            a: i32,
+        },
+        AfterSleep {
+            b: i32,
+            c: &i32,
+        },
+    }
+        </pre></code>
+
+        <p>Which can then be polled to advance it.</p>
+
+        <code><pre>
+    let fut = belated_say_hi();
+    let context = &mut Context::from_waker(Waker::noop());
+
+    loop {
+        match fut.poll(context) {
+            Poll::Ready(value) => println!("Done! {value:?}"),
+            Poll::Pending => println!("Still more work to do..."),
+        }
+    }
+        </pre></code>
+
+        <p>The <code>Context</code> struct contains a <code>Waker</code>, and the <code>Waker</code> allows the <code>Future</code> to notify when it is ready to be polled again. Here we used <code>Waker::noop</code> for no-operation which just ignores any notifications the <code>Future</code> sends.</p>
+
+        <p>
+            Here's one edge-case:
+        </p>
+
+        <code><pre>
+    let fut = async {
+        async { thread::sleep(Duration::from_secs(1)) }.await;
+        async { thread::sleep(Duration::from_secs(1)) }.await;
+        async { thread::sleep(Duration::from_secs(1)) }.await;
+    };
+
+    loop {
+        match fut.poll(context) {
+            Poll::Ready(()) => break,
+            Poll::Pending => println!("Pending"),
+        }
+    }
+        </pre></code>
+
+        <p>You'd think that this would print <code>Pending</code> 3 times, but no! Since <code>thread::sleep</code> is synchronous and blocking, Rust will just wait 3 seconds and finish on the first poll.
+
+        <p>If we use <code>tokio::time::sleep</code> instead it would work as expected. This is because <code>tokio::time::sleep</code> is asynchronous and returns <code>Poll::Pending</code></p>
+
+        <code><pre>
+    let fut = async {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    };
+
+    loop {
+        match fut.poll(context) {
+            Poll::Ready(()) => break,
+            Poll::Pending => println!("Pending"),
+        }
+    }
+        </pre></code>
+
+        <p>In the implementation of <code>tokio::time::sleep</code> somewhere...</p>
+
+        <code><pre>
+    ...
+
+    if still sleeping {
+        return Poll::Pending;
+    }
+
+    ...
+        </pre></code>
+
+        <p>This is actually a good thing! Less unneccessary polling means more performance. But more importantly, this gives us more control over when our future "pends" because we have to explicitly await a future that returns <code>Poll::Pending</code>.</p>
+
+        <p>Now we can start.</p>
+
+        <p>I'm making a dialect of lisp and I'd like step-by-step execution. Instead of executing a big chunk of lisp all in one go. I want to be able to step-through each instruction as it's being executed.</p>
+
+        <p>I had already wrote the lisp eval-er and I didn't want to rewrite it<sup><a id="lisp-eval-er" href="#lisp-eval-er-footnote">[1]</a></sup>. So I had an evil idea. I could convert it into an async function and poll it!</p>
+
+        <p>The code looked something like this:</p>
+
+        <code><pre>
+    fn eval(ast) {
+        match ast {
+            Vector(vec) => {
+                for item in vec {
+                    eval(item)
+                }
+            }
+            
+            ... etc
+        }
+    }
+        </pre></code>
+
+        <p>And it was very easy to convert it into async.</p>
+
+        <code><pre>
+    async fn eval(ast) {
+        ForcePending::new().await;
+
+        match ast {
+            Vector(vec) => {
+                for item in vec {
+                    eval(item).await
+                }
+            }
+            
+            ... etc
+        }
+    }
+        </pre></code>
+
+        <p>Since the rest of the code is synchronous, it will only stop executing and return control to the poller when it hits <code>ForcePending</code>.</p>
+
+        <p><code>ForcePending</code> is implemented like so:</p>
+
+        <code><pre>
+    struct ForcePending {
+        completed: bool,
+    }
+
+    impl ForcePending {
+        fn new() -> Self {
+            Self { completed: false }
+        }
+    }
+
+    impl Future for ForcePending {
+        fn poll(self, context) -> Poll {
+            if self.completed {
+                Poll::Ready(())
+            } else {
+                self.completed = true;
+                Poll::Pending
+            }
+        }
+    }
+        </pre></code>
+
+        <p>And with some abuse of <code>Context</code> extension data. I can return information back to the poller to inform it what I was eval-ing.</p>
+
+        <code><pre>
+    fn eval(ast) {
+        let metadata = (current_line_number, current_column_number);
+        ForcePending::new(metadata).await;
+
+        ...
+    }
+
+    struct ForcePending {
+        metadata: (i32, i32),
+        completed: bool,
+    }
+    
+    impl Future for ForcePending {
+        fn poll(self, context) {
+            *context.ext() = self.metadata;
+            
+            ... etc
+        }
+    }
+        </pre></code>
+
+        <p>Then the poller could.</p>
+
+        <code><pre>
+    let fut = eval();
+    let context = ContextBuilder::from_waker(Waker::noop())
+        .ext(&mut metadata) // &lt;-- pass in data
+        .build();
+    
+    loop {
+        println!("Step");
+        match fut.poll(context) {
+            Poll::Ready(value) => break,
+            Poll::Pending => {},
+        }
+    }
+        </pre></code>
+
+        <p>I had to enable the <code>local_waker</code> and <code>context_ext</code> features because those are still unstable.</p>
+
+        <h2>Closing thoughts (and footnotes)</h2>
+
+        <p>As you can guess, the code is pretty ugly, so I won't be showing it here or linking to the source. It's also very very unsafe becaues I decided the lisp language should have garbage collection, which was a whole other can of worms. I think the main take-away from this blog post is that you shouldn't trust me to write code. I'll make abominations like what you're seeing here.</p>
+
+        <a id="lisp-eval-er-footnote" href="#lisp-eval-er">[1]</a> Especially because, ugh, can you imagine writing a lisp executor as a state machine, <em>by hand</em>? Even if I <em>did</em> want to rewrite it, I still wouldn't want to write it as a state machine.
+    </main>
+</body>
+
+</html>
