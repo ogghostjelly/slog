@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog without the s</title>
+    <style>
+        html {
+            cursor: url(assets/cursor.png), auto;
+        }
+
+        body {
+            --bg-color: #050211;
+            --fg-color: #B5C2B7;
+            --dark-fg-color: #8C93A8;
+            --primary-color: #FF1B1C;
+            --secondary-color: #FF7F11;
+            --ternary-color: #A05CE0;
+
+            margin: 40px auto;
+            max-width: 650px;
+            font-size: 18px;
+            color: var(--fg-color);
+            padding: 0 10px;
+            font-family: 'Lucida Console', 'Helvetica', 'Arial';
+            background-color: var(--bg-color);
+        }
+
+        h1 {
+            text-shadow: 2px 2px var(--dark-fg-color);
+        }
+
+        /* Anchors */
+
+        a {
+            display: inline-flex;
+            color: var(--ternary-color);
+            transition: color 0.2s;
+            cursor: url(assets/cursor-highlight.png), auto;
+        }
+
+        a:hover {
+            color: var(--secondary-color);
+            filter: drop-shadow(var(--secondary-color) 0px 0px 2px);
+        }
+
+        a:active {
+            color: var(--primary-color);
+            filter: drop-shadow(var(--primary-color) 0px 0px 2px);
+        }
+
+        body {
+            background-image: url("assets/background.jpeg");
+            background-repeat: repeat;
+            background-position: center;
+        }
+
+        ul {
+            padding-left: 0;
+        }
+
+        li {
+            list-style: none;
+        }
+
+        p {
+            background-color: var(--bg-color);
+            border: 2px dotted var(--ternary-color);
+            padding: 8px;
+            margin: 0;
+            line-height: 1em;
+        }
+    </style>
+</head>
+
+<body>
+    <nav>
+        <a title="what? too afraid of my dark deep evil fucked up mind? hehe well, *smirks* most ppl are hehe. im just a chill guy" href="..">go back</a>
+    </nav>
+    <br>
+    <header>
+        thoughts I have that I feel the need to externalize.
+    </header>
+    <main>
+        <ul id="ogj-thoughts">
+<li><p>i'm enjoying writing bash? what?</p></li>
+<li><p>I like this text editor called <code>helix</code> and I want to be able to use it when I'm ssh'ed into a Raspberry Pi.
+The GLIBC version is out-of-date because apparently Debian 11 is too old (apparently), so I'm cross-compiling it from source for the Raspberry Pi
+(I don't want to compile it <em>on</em> the Raspberry Pi because it would explode trying to run a Rust compiler).
+I wrote a Dockerfile that emulates Debian 11 but the chipset is different (I'm on x86-64, Raspberry Pi is ARM).
+I looked at <code>cross</code> a popular Rust cross-platform compiler wrapper and it uses a VM to emulate the chipset... soooo...
+I have to make a VM with QEMU using the Raspberry Pi kernel images, mount a file-system from my host to the virtual guest, SSH into it, install Rust, and compile.
+I won't do that because my computer doesn't have the disk space to install a whole VM.
+I'm starting to think maybe I should've just made a Github issue or updated the Raspberry Pi or, you know, just use <code>nano</code> instead? (don't say <code>vim</code>)</p></li>
+<li><p>Autocorrect should function on tokens instead of words. It should bread-crumb me to the word I want to type.
+he-&gt;hell-&gt;hello</p></li>
+<li><p>fucking docker man</p></li>
+<li><p>I love rain. I like outdoor boys. I love when it rains on the outdoor boys youtube channel.</p></li>
+<li><p>I don't like writing Javascript at all. It does not incite joy.
+Suffer boilerplate littered with <code>document.create*</code> and <code>textContent =</code>,
+or use a "reactive" web framework and feel icky because of added complexity and bloat.
+I'm glad people are trying HTML-like frameworks (e.g HTMX) that don't force you into data-&gt;ui state synchronization hell.
+A quote I like from <a href="https://r7rs.org">r7rs</a>,
+"Programming languages should be designed not by piling feature on top of feature, but by removing the weaknesses and restrictions that make additional features appear necessary."
+tl;dr js state management sucks and web frameworks are leaky abstractions.</p></li>
+<li><p>I hate when I read a blog post and it's wrong and out-dated, I think wow, this blog post is shit.
+When I keep reading and all the links don't work, I think wow, this writing is <em>shit</em>.
+Then I see that little em dash, and I think wow, this <em>person</em> is full of <strong>shit</strong>.
+Stop wasting my fucking time.
+I don't hate the technology inherently but if you use LLMs to write you better not appear in my search results or I hate you.
+I hate reading the writing style AI produces, even if you only use it to fix grammar issues, it infects everything.
+It's not just verbose—it's pandering and annoying.
+Ultimately the tools you use affect the way things are made, and AI affects things shit.
+Search engines should add AI disclosure and reporting of poor quality websites so I can make informed decisions about what I want to read.
+Personally, I would be embarrassed to put out garbage slop sites but I guess some people don't have enough of a conscience. &gt;:(
+People in the before times had to put effort into pissing me off. It's somehow more infuriating that the pissing of me off is automated.</p></li>
+<li><p>I like the idea of custom html elements.
+If everything is just html it's simple isn't it? How nice!
+I wish I could do <code>&lt;red&gt;to make text red&lt;/red&gt;</code> or <code>&lt;random&gt;to pick a random word&lt;/random&gt;</code>.
+And I could if I had custom elements.</p></li>
+<li><p>I may be using Rust errors wrong. TBF everyone else is too.</p></li>
+<li><p>Having to suffer through Rust errors will make you fall in love with try catch.</p></li>
+        </ul>
+    </main>
+    <footer>
+        thoughts are in <a href="thoughts.txt">a txt file</a> that I edit with <a href="ed.sh">a bash script</a>. the txt file uses \n\n to separate thoughts.
+    </footer>
+</body>
