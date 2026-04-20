@@ -87,7 +87,7 @@ cat <<EOF > thoughts.html
 
 <body>
     <nav>
-        <a title="what? too afraid of my dark deep evil fucked up mind? hehe well, *smirks* most ppl are hehe. im just a chill guy" href="..">go back</a>
+        <a title="what? too afraid of my dark deep evil fucked up mind? hehe well, *smirks* most ppl are hehe. im just a chill guy" href="../..">go back</a>
     </nav>
     <br>
     <header>
