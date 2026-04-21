@@ -1,3 +1,5 @@
+Ever since my first Factorio save was overrun by biters, every time I open my current Factorio world I get anxious that it's going to happen again.
+
 i'm enjoying writing bash? what?
 
 I like this text editor called `helix` and I want to be able to use it when I'm ssh'ed into a Raspberry Pi.
