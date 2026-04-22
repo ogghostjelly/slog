@@ -1,3 +1,11 @@
+It's sad MonoDevelop died. I have a lot of nostalgia for it and
+Stardew Valley modding doesn't feel the same without it.
+
+Got `helix` to cross-compile to my Raspberry PI but sadly I had to use `cross`.
+I know what you're thinking. Why didn't you use `cross` in the first place?
+I wanted to understand how cross-compilig actually works, which is why I was trying to write my own Dockerfile that runs QEMU to emulate ARM to cross-compile `helix`.
+I quickly realized that cross-compiling is super fiddly and I like being sane, so I gave in.
+
 Ever since my first Factorio save was overrun by biters, every time I open my current Factorio world I get anxious that it's going to happen again.
 
 i'm enjoying writing bash? what?
