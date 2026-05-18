@@ -1,3 +1,8 @@
+I'm enjoying writing CSS? what?
+
+Doing *thing* is fun. Explaining *thing* is menial.
+Maybe if I get better at explaining *thing* it'll be fun.
+
 It makes sense that compiler engineers wrote `clang-format`, because it too generates unreadable output.
 
 Sometimes when I take a picture of my cat and it's especially funny looking.
