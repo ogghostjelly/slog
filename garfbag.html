@@ -6,16 +6,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>&lt;3</title>
     <style>
+        html {
+            cursor: url("assets/garfbag/cursor.png"), auto;
+        }
+
         body {
-            background-color: black;
-            color: white;
-            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            background-color: maroon;
             line-height: 1.5em;
             font-size: 1.5em;
 
             background-image: url("assets/garfbag/heart.png");
-            background-size: 10%;
+            background-size: 1%;
             background-repeat: repeat;
+
+            color: aliceblue;
+            text-shadow: 1px 1px 2px black;
+        }
+
+        figure>img {
+            border-radius: 4px;
+            box-shadow: 1px 1px 4px black;
+        }
+
+        figure>img:hover {
+            translate: -1px -1px;
+            box-shadow: 2px 2px 8px black;
         }
 
         figcaption {
@@ -38,10 +53,13 @@
         <!-- so annoying they deprecated this tag in 2004 -->
         <!-- it still works on most browsers! and it does what css can't (center a div) -->
         <center>
+            <marquee behavior="alternate" scrollamount="128">garfbag</marquee>
+            <iframe style="border: 0; height: 42px;" src="https://bandcamp.com/EmbeddedPlayer/album=2506483650/size=small/bgcol=000102/linkcol=0067d5/transparent=true/" seamless><a href="https://glassbeach.bandcamp.com/album/run-away-with-me-glass-beach-harsh-noise-remix">Run Away With Me (Glass Beach Harsh Noise Remix) by glass beach</a></iframe>
             <figure>
                 <img style="max-width: 100%;" src="assets/garfbag.gif" alt="garfbag in all his glory">
-                <figcaption>garfbag, in loving memory. &lt;3</figcaption>
+                <figcaption>garfbag, in loving memory. <span style="color: red;">&lt;3</span></figcaption>
             </figure>
+            <marquee>we will miss you!</marquee>
         </center>
     </main>
 </body>

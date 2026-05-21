@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog arduino synth</title>
+    <style>
+        .table-container,
+        pre {
+            overflow: scroll;
+        }
+
+        th,
+        td {
+            border: 1px black solid;
+        }
+
+        td {
+            text-align: center;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        :target {
+            animation-name: highlight;
+            animation-duration: 1s;
+        }
+
+        @keyframes highlight {
+            from {
+                background-color: yellow;
+            }
+
+            to {
+                background-color: transparent;
+            }
+        }
+
+        h1>.anchor,
+        h2>.anchor,
+        h3>.anchor {
+            display: none
+        }
+
+        h1:hover,
+        h2:hover,
+        h3:hover {
+            background-color: aliceblue;
+
+            &>.anchor {
+                display: inline;
+            }
+        }
+    </style>
+    <style>
+        .bash {
+            sx-fn {
+                color: darkblue;
+            }
+
+            sx-str {
+                color: green;
+            }
+
+            sx-arg {
+                color: darkorange;
+            }
+        }
+
+        .c,
+        .py,
+        .python {
+            sx-kwd {
+                color: purple;
+            }
+
+            sx-id {
+                color: indigo;
+            }
+
+            sx-sym {
+                color: blue;
+            }
+
+            sx-num {
+                color: darkorange;
+            }
+
+            sx-fn {
+                color: darkgoldenrod;
+            }
+
+            sx-str {
+                color: green;
+            }
+
+            sx-com {
+                color: green;
+            }
+        }
+    </style>
+</head>
+
+<body style="margin:0; height:100vh; display:grid; gap: 16px;">
+    <aside class="nav-aside" style="overflow:auto;">
+        <ol class="nav-list" style="position: sticky;">
+            <li><a href="#top">Top</a></li>
+            <li><a href="#what-is-sound">What is Sound?</a>
+                <ul>
+                    <li><a href="#pcm">PCM</a></li>
+                    <li><a href="#pwm">PWM</a></li>
+                    <li><a href="#pdm">PDM</a></li>
+                </ul>
+            </li>
+            <li><a href="#how-do-we-play-it">And how do we play it.</a>
+                <ul>
+                    <li><a href="#wav-file-format">WAV File Format</a></li>
+                    <li><a href="#writing-to-wav">Writing to WAV</a></li>
+                    <li><a href="#dumb-wav-on-arduino">Dumb WAV on Arduino</a></li>
+                    <li><a href="#about-timers">About Timers</a></li>
+                </ul>
+            </li>
+            <li><a href="#midi-synthesizer">MIDI Synthesizer</a>
+                <ul>
+                    <li><a href="#midi-file-format">MIDI File Format</a></li>
+                    <li><a href="#midi-to-wav">MIDI to WAV</a></li>
+                </ul>
+            </li>
+            <li><a href="#on-arduino">on Arduino.</a>
+                <ul>
+                    <li><a href="#lzw-compression">LZW Compression</a></li>
+                    <li><a href="#bits-bytes-and-performance">Bits, Bytes, and Performance</a></li>
+                    <li><a href="#faking-polyphonics">Faking Polyphonics</a></li>
+                </ul>
+            </li>
+            <li><a href="#the-end">The End.</a></li>
+            <li><a href="#footnotes">Footnotes</a></li>
+        </ol>
+        <style>
+            .nav-list>li {
+                margin-bottom: 16px;
+                background-color: whitesmoke;
+            }
+
+            .nav-list ul {
+                padding-left: 1em;
+            }
+        </style>
+    </aside>
+    <style>
+        @media (orientation: portrait) {
+            body {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-aside {
+                display: none;
+            }
+        }
+
+        @media (orientation: landscape) {
+            body {
+                grid-template-columns: 12em 1fr;
+            }
+        }
+    </style>
+    <div style="overflow:auto; padding: 16px;">
+        <header>
+            <h1 id="top">Writing a MIDI synthesizer for Arduino <a class="anchor" href="#top">#</a></h1>
+        </header>
+        <nav>
+            <a href="..">go back</a>
+        </nav>
+        <main>
+            <p>
+                The ultimate goal is to play Losing My Religion by R.E.M. The <a href="LosingMyReligion.mid">MIDI file I have of it</a> (that I ripped off the internet) is 40KB, larger than the ATmega's 32KB of program memory. It has up to 10 different notes playing at once. This is possible, but it's going to take a bit of head scratching. Let's figure this out.
+            </p>
+
+            <p>
+                When I write. I pretend that I'm talking to my past self. This is what I wish I knew when I started this project and what I learnt after I've completed it. It's structured like a tutorial but you don't neccessarily have to follow along.
+            </p>
+
+            <h2 id="what-is-sound">What is Sound? <a class="anchor" href="#what-is-sound">#</a></h2>
+
+            <p>Let's explain some terminology.</p>
+
+            <h3 id="pcm">Pulse-code modulation (<a href="https://en.wikipedia.org/wiki/Pulse-code_modulation"><abbr title="Pulse-code modulation">PCM</abbr></a>) <a class="anchor" href="#pcm">#</a></h3>
+
+            <p>
+                Is a <em>digital</em> audio format. It represents the waves of audio digitally, with bits and bytes, 1s and 0s. It represents audio as a list of points and their amplitudes. Every point is sampled at a uniform interval.
+            </p>
+
+            <figure>
+                <img width="500" height="375" src="Pcm.svg">
+                <figcaption>A visualization of PCM audio. The blue are the points that are stored digitally, and the red is the sine wave that the points represent.</figcaption>
+            </figure>
+
+            <h3 id="pwm">Pulse-width modulation (<a href="https://en.wikipedia.org/wiki/Pulse-width_modulation"><abbr title="Pulse-width modulation">PWM</abbr></a>) <a class="anchor" href="#pwm">#</a></h3>
+
+            <p>
+                Is an <em>analog</em> audio format. It represents the waves of audio as electrical pulses. Wider pulses have a higher amplitude. By sending differently sized pulses we can construct an audio wave.
+            </p>
+
+            <figure>
+                <img width="500" height="375" src="Pwm.svg">
+                <figcaption>A visualization of PWM audio. The blue are the electrical pulses. The red is the apparent sine wave that is formed.</figcaption>
+            </figure>
+
+            <p>The width of the pulses is called it's duty cycle. Let's say we send one pulse per second. If the pulse is on for 0.25 seconds and off for 0.75 seconds, it would have a 25% duty cycle, because it's on 25% of the time.</p>
+
+            <figure>
+                <img width="201" height="141" src="Pwm-dutycycle.gif">
+                <figcaption>A visualization of PWM duty cycle.</figcaption>
+            </figure>
+
+            <h3 id="pdm">Pulse-density modulation (<a href="https://en.wikipedia.org/wiki/Pulse-density_modulation"><abbr title="Pulse-density modulation">PDM</abbr></a>) <a class="anchor" href="#pdm">#</a></h3>
+
+            <p>
+                Is an analog <em>and</em> digital audio format. It can be used to store data digitally, as 1s and 0s, and it can be used to send electrical pulses. To compare it to PWM. PWM encodes amplitude by using longer and shorter pulses. While PDM encodes amplitude by using more or less pulses.
+            </p>
+
+            <figure>
+                <p style="overflow: scroll;">0101011011110111111111111111111111011111101101101010100100100000010000000000000000000001000010010101</p>
+                <img width="499" height="58" src="Pdm.gif">
+                <figcaption>A visualization of PDM audio. The blue are the electrical pulses. The red is the apparent sine wave that is formed. Above it are the binary digits that represent the signal.</figcaption>
+            </figure>
+
+            <h2 id="how-do-we-play-it">And how do we play it. <a class="anchor" href="#how-do-we-play-it">#</a></h2>
+
+            <p>Let's start off by playing a WAV file on Arduino. WAV files are quite big because they contain a lot of audio sample data but we should be able to fit about 3 seconds of audio in the Arduino.</p>
+
+            <p>Here is our <a href="example.wav">example.wav</a> file.</p>
+
+            <audio controls src="example.wav"></audio>
+
+            <p>WAV files support many different formats of storing audio data. This example.wav file is 8-bit PCM 8KHz Mono. That means.</p>
+
+            <ul>
+                <li>It uses 8-bit samples.</li>
+                <li>It's encoded using PCM.</li>
+                <li>It's 8,000 samples per second, or a sample rate of 8KHz.</li>
+                <li>And it plays the same sounds in both ears.</li>
+            </ul>
+
+            <p>All you really need is a <a href="https://duckduckgo.com/?q=wav+file+specification">search engine</a> and a <a href="hexed.it">hex editor</a> and you can get to parsing wav files on your own. Of course, I'll provide some description about wav files here.</p>
+
+            <h3 id="wav-file-format">WAV File Format <a class="anchor" href="#wav-file-format">#</a></h3>
+
+            <p>A <a href="https://en.wikipedia.org/wiki/WAV">WAV</a> file is stored as a chunk inside of the RIFF file format. So to understand WAV files we must first understand RIFF.</p>
+
+            <p><a href="https://en.wikipedia.org/wiki/Resource_Interchange_File_Format"><abbr title="Resource Interchange File Format">RIFF</abbr></a>, or <b>R</b>esource <b>I</b>nterchange <b>F</b>ile <b>F</b>ormat, (what a mouth full!) is a container format that lets you store data in chunks. Chunks can contain subchunks. There is a top-level RIFF chunk and everything else is a child of it. So it ends up forming a tree-like data-structure.<sup><a href="#fn:0" id="fnref:0">[0]</a></sup></p>
+
+            <p>RIFF is notably used in AVI and WAV files. Every RIFF file starts with the text "RIFF" at the beginning. Open up an AVI or WAV file in a text editor and see for yourself. Or <code class="bash"><sx-fn>cat</sx-fn></code> the first 64 bytes of the file with <code class="bash"><sx-fn>cat</sx-fn> <sx-str>example.wav</sx-str> | <sx-fn>head</sx-fn> <sx-arg>-c64</sx-arg></code>. You should see something like</p>
+
+            <p><code class="py"><sx-kwd>RIFF</sx-kwd><sx-num>4z</sx-num><sx-kwd>WAVE</sx-kwd><sx-sym>fmt </sx-sym><sx-num>@</sx-num><sx-sym>data</sx-sym><sx-num>z������������������</sx-num></code></p>
+
+            <p>Yup, starts with RIFF. That is in fact a RIFF file.</p>
+
+            <p>The RIFF tag is followed by the length of the chunk. That <code class="py"><sx-num>4z</sx-num></code> is <code class="py">0x7a34</code> in hex or 31284KB, the size of our file.</p>
+
+            <p>Then after it is the tag of the first subchunk. In this example it's <code class="py">"<sx-kwd>WAVE</sx-kwd>"</code> because we are looking at a WAV file. If you're looking at an AVI file it will show <code class="py">"<sx-kwd>AVI </sx-kwd>"</code>. It's important to note that some RIFF tags contain whitespace. That <code class="py">"<sx-kwd>AVI </sx-kwd>"</code> tag is actually 4 bytes long because it has an ending whitespace (hex 0x20). The same is true for the <code class="py">"<sx-sym>fmt </sx-sym>"</code> tag.</p>
+
+            <p>Most WAV files only have two chunks, the <code class="py">"<sx-sym>fmt </sx-sym>"</code> and <code class="py">"<sx-sym>data</sx-sym>"</code> chunks. It's not important to create a comprehensive WAV file parser that handles all the quirks of the format. Here is the basic WAV file header.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Name</th>
+                        <th>Size in bytes</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>"RIFF"</td>
+                        <td>4</td>
+                        <td>"RIFF" four-character code</td>
+                    </tr>
+                    <tr>
+                        <td>Chunk size</td>
+                        <td>4</td>
+                        <td>File size minus 8 bytes</td>
+                    </tr>
+                    <tr>
+                        <td>"WAVE"</td>
+                        <td>4</td>
+                        <td>"WAVE" four-character code</td>
+                    </tr>
+                    <tr>
+                        <td>"fmt "</td>
+                        <td>4</td>
+                        <td>"fmt " four-character code</td>
+                    </tr>
+                    <tr>
+                        <td>Chunk size</td>
+                        <td>4</td>
+                        <td>Chunk size, in this case, equal to 16 or 0x10</td>
+                    </tr>
+                    <tr>
+                        <td>Audio format</td>
+                        <td>2</td>
+                        <td>(0x1) PCM, (0x3) IEEE float, (0x6) ALAW, <br> (0x7) MULAW, (0xFFFE) EXTENSIBLE</td>
+                    </tr>
+                    <tr>
+                        <td>Number of channels</td>
+                        <td>2</td>
+                        <td>Number of audio channels. <br> (e.g 1 = Mono, 2 = Stereo)</td>
+                    </tr>
+                    <tr>
+                        <td>Sample rate</td>
+                        <td>4</td>
+                        <td>Number of samples per second.</td>
+                    </tr>
+                    <tr>
+                        <td>Bytes per second</td>
+                        <td>4</td>
+                        <td>(Sample rate * Number of channels * Bits per sample)/8</td>
+                    </tr>
+                    <tr>
+                        <td>Bytes per block</td>
+                        <td>2</td>
+                        <td>(Number of channels * Bits per sample)/8</td>
+                    </tr>
+                    <tr>
+                        <td>Bits per sample</td>
+                        <td>2</td>
+                        <td>Amount of bits in a sample</td>
+                    </tr>
+                    <tr>
+                        <td>"data "</td>
+                        <td>4</td>
+                        <td>"data " four-character code</td>
+                    </tr>
+                    <tr>
+                        <td>Chunk size</td>
+                        <td>4</td>
+                        <td>Size of sampled data</td>
+                    </tr>
+                    <tr>
+                        <td>Audio data</td>
+                        <td></td>
+                        <td>Audio samples</td>
+                    </tr>
+                </table>
+            </div>
+
+            <h3 id="writing-to-wav">Writing to WAV <a class="anchor" href="#writing-to-wav">#</a></h3>
+
+            <p>Now we understand the WAV file format. Let's try synthesizing some music into it. I'll use Python in my examples, but any language will do. I suggest writing your own WAV file parser, of course.</p>
+
+            <p>We'll import the libraries we need.</p>
+
+            <pre><code class="py">
+    <sx-kwd>import</sx-kwd> <sx-id>math</sx-id>
+    <sx-kwd>import</sx-kwd> <sx-id>wave</sx-id>
+            </code></pre>
+
+            <p>Then we'll create the wav file.</p>
+
+            <pre><code class="py">
+    <sx-sym>sample_rate</sx-sym> = <sx-num>44100</sx-num>
+
+    <sx-sym>f</sx-sym> = <sx-id>wave</sx-id>.<sx-fn>open</sx-fn>(<sx-str>"out.wav"</sx-str>, <sx-str>"wb"</sx-str>)
+    <sx-sym>f</sx-sym>.<sx-fn>setframerate</sx-fn>(<sx-sym>sample_rate</sx-sym>)
+    <sx-sym>f</sx-sym>.<sx-fn>setnchannels</sx-fn>(<sx-num>1</sx-num>)
+    <sx-sym>f</sx-sym>.<sx-fn>setsampwidth</sx-fn>(<sx-num>1</sx-num>)
+            </code></pre>
+
+            <p><code class="py"><sx-sym>sample_rate</sx-sym></code> is the amount of samples per second. 44100 is a pretty standard sample rate, so that's what we set it to. You can try messing around with different values and see how the audio quality changes. (You might not notice much of a difference until you set it into the low thousands)</p>
+
+            <p><code class="py"><sx-sym>nchannels</sx-sym></code> is the number of audio channels. Increasing the number of channels is how you get multiple audio sources, like different audio playing in both ears or surround sound speakers.</p>
+
+            <p><code class="py"><sx-sym>sampwidth</sx-sym></code> is the number of bytes per sample. Since we set it to <code>1</code> we are encoding 8-bit audio.</p>
+
+            <p>Now let's write a simple sine wave tone.</p>
+            <pre><code class="py">
+    <sx-sym>samples</sx-sym> = []
+
+    <sx-com># start a loop that will generate 5 seconds of audio.</sx-com>
+    <sx-kwd>for</sx-kwd> <sx-sym>i</sx-sym> <sx-kwd>in</sx-kwd> <sx-id>range</sx-id>(<sx-sym>sample_rate</sx-sym> * <sx-num>5</sx-num>):
+        <sx-com># create the next audio sample for the sine wave with a frequency of 440Hz</sx-com>
+        <sx-sym>sample_float</sx-sym> = <sx-id>math</sx-id>.<sx-fn>sin</sx-fn>(<sx-num>440</sx-num> * (<sx-sym>i</sx-sym>/<sx-sym>sample_rate</sx-sym>) * <sx-id>math</sx-id>.<sx-sym>tau</sx-sym>)
+        <sx-com># convert a float with the range of -1..1 into an 8-bit integer with the range of 0..255</sx-com>
+        <sx-sym>sample_byte</sx-sym> = <sx-id>math</sx-id>.<sx-fn>floor</sx-fn>((<sx-sym>sample_float</sx-sym>+<sx-num>1</sx-num>)/<sx-num>2</sx-num>*<sx-num>255</sx-num>)
+
+        <sx-sym>samples</sx-sym>.<sx-fn>append</sx-fn>(<sx-sym>sample_byte</sx-sym>)
+
+    <sx-sym>f</sx-sym>.<sx-fn>writeframes</sx-fn>(<sx-id>bytes</sx-id>(<sx-sym>samples</sx-sym>))
+            </code></pre>
+
+            <audio controls src="tone-a440.wav"></audio>
+
+            <p>Try messing around with the variables and see what happens. If you set <code class="py"><sx-sym>nchannels</sx-sym></code> to <code>2</code> you'll need to append twice and add another <code class="py"><sx-sym>samples</sx-sym>.<sx-fn>append</sx-fn></code> to the code.</p>
+
+            <p>As you can see, <code class="py"><sx-id>math</sx-id>.<sx-fn>sin</sx-fn>(<sx-num>440</sx-num> * (<sx-sym>i</sx-sym>/<sx-sym>sample_rate</sx-sym>) * <sx-id>math</sx-id>.<sx-sym>tau</sx-sym>)</code> generates an audio sample for a sine wave with a frequency of <code class="py"><sx-num>440Hz</sx-num></code> and <code class="py"><sx-id>math</sx-id>.<sx-fn>floor</sx-fn>((<sx-sym>sample_float</sx-sym>+<sx-num>1</sx-num>)/<sx-num>2</sx-num>*<sx-num>255</sx-num>)</code> converts that float audio sample into an 8-bit integer. Instead of a plain sine wave there are many tricks we can use to generate better sounding audio, like <a href="https://en.wikipedia.org/wiki/Envelope_(music)">ADSR</a> (Attack, Decay, Sustain, Release). Using these math tricks is how various instruments are emulated on a computer. Sebastian Lague has a wonderful <a href="https://www.youtube.com/watch?v=rRnOtKlg4jA">video</a> on writing a synthesizer. For this project, we will be sticking to a simple sine wave.</p>
+
+            <h3 id="dumb-wav-on-arduino">Dumb WAV on Arduino <a class="anchor" href="#dumb-wav-on-arduino">#</a></h3>
+
+            <p>Let's dump the PCM audio samples from that <a href="example.wav">example.wav</a> file into an Arduino <code>.ino</code> script. Let's put it in a variable called <code class="c"><sx-sym>audio_data</sx-sym></code>. The audio data is in the <code class="py">"<sx-sym>data</sx-sym>"</code> WAV chunk. By the way, you can choose whatever audio file you want. Just make sure that the sample rate and sample width is <em>reaallly</em> low.</p>
+
+            <pre><code class="c">
+    <sx-kwd>const</sx-kwd> PROGMEM <sx-kwd>uint8_t</sx-kwd> <sx-sym>audio_data</sx-sym>[] = {
+        <sx-com>// Literally just the numbers from the "data" WAV chunk pasted in.</sx-com>
+        <sx-num>127</sx-num>,<sx-num>169</sx-num>,<sx-num>207</sx-num>,<sx-num>235</sx-num>,<sx-num>251</sx-num>,<sx-num>254</sx-num>,<sx-num>242</sx-num>,<sx-num>217</sx-num>,<sx-num>182</sx-num>, ... <sx-com>etc</sx-com>
+    };
+            </code></pre>
+
+            <p>The PCM audio data, in the context of PWM, can be seen as a list of duty cycles. To generate the duty cycle for an audio sample with the value of <code>100</code> we would need to turn the speaker pin on for <code>100</code> ticks and then off for <code>155</code> (<code>255-100</code>) ticks.</p>
+
+            <p>Let's create the speaker pin.</p>
+
+            <pre><code class="c">
+    <sx-kwd>const</sx-kwd> <sx-kwd>int</sx-kwd> <sx-sym>SPEAKER_PIN</sx-sym> = <sx-num>11</sx-num>;
+            </code></pre>
+
+            <p>And make sure to set it to output.</p>
+
+            <pre><code class="c">
+    <sx-kwd>void</sx-kwd> <sx-fn>setup</sx-fn>() {
+        <sx-fn>pinMode</sx-fn>(<sx-sym>SPEAKER_PIN</sx-sym>, <sx-id>OUTPUT</sx-id>);
+    }
+            </code></pre>
+
+            <p>Now to output PWM audio to the speaker!</p>
+
+            <pre><code class="c">
+    <sx-kwd>void</sx-kwd> <sx-fn>loop</sx-fn>() {
+        <sx-com>// for every sample</sx-com>
+        <sx-kwd>for</sx-kwd> (<sx-kwd>int</sx-kwd> <sx-sym>i</sx-sym> = <sx-num>0</sx-num>; <sx-sym>i</sx-sym> < <sx-id>sizeof</sx-id>(<sx-sym>audio_data</sx-sym>); <sx-sym>i</sx-sym>++) {
+            <sx-com>// turn it on for a bit</sx-com>
+            <sx-kwd>for</sx-kwd> (<sx-kwd>int</sx-kwd> <sx-sym>j</sx-sym> = <sx-num>0</sx-num>; <sx-sym>j</sx-sym> < <sx-fn>pgm_read_byte</sx-fn>(&<sx-sym>audio_data</sx-sym>[<sx-sym>i</sx-sym>]); <sx-sym>j</sx-sym>++) {
+                <sx-fn>digitalWrite</sx-fn>(<sx-sym>SPEAKER_PIN</sx-sym>, <sx-id>HIGH</sx-id>);
+            }
+            <sx-com>// and then off for a bit</sx-com>
+            <sx-kwd>for</sx-kwd> (<sx-kwd>int</sx-kwd> <sx-sym>j</sx-sym> = <sx-num>0</sx-num>; <sx-sym>j</sx-sym> < (<sx-num>255</sx-num> - <sx-fn>pgm_read_byte</sx-fn>(&<sx-sym>audio_data</sx-sym>[<sx-sym>i</sx-sym>])); <sx-sym>j</sx-sym>++) {
+                <sx-fn>digitalWrite</sx-fn>(<sx-sym>SPEAKER_PIN</sx-sym>, <sx-id>LOW</sx-id>);
+            }
+        }
+    }
+            </code></pre>
+
+            <audio controls src="bad-example.wav"></audio>
+
+            <p>Hmmm... that doesn't sound quite right. That's probably because our program is trying to play the audio samples as fast as it possibly can. It'd be better if our program played the audio at the speed of the audio instead of going crazy fast.</p>
+
+            <h3 id="about-timers">About Timers <a class="anchor" href="#about-timers">#</a></h3>
+
+            <p>Luckily, the ATmega328P has a useful function. Hardware timers. Not only will they let us time our program so that it generates samples at the right speed, but the ATmega328P also happens to support a PWM mode for it's timers that will do the "turning on for a bit and turning off for a bit" part for us. Nice!</p>
+
+            <p>There are three hardware timers on the ATmega328P. Timer 0, Timer 1, and Timer 2. Each timer has different modes that they support, different bit resolutions, and different uses in an Arduino. Here's a table showcasing their differences.</p>
+
+            <div class="table-container" style="display: inline-block;">
+                <table>
+                    <tr>
+                        <th></th>
+                        <th>Resolution</th>
+                        <th>Used for</th>
+                        <th>Ouput pins in PWM mode</th>
+                    </tr>
+                    <tr>
+                        <th>Timer 0</th>
+                        <td>8-bit</td>
+                        <td><code>delay</code>, <code>millis</code>, <code>micros</code></td>
+                        <td>5, 6</td>
+                    </tr>
+                    <tr>
+                        <th>Timer 1</th>
+                        <td>16-bit</td>
+                        <td>Servo Functions</td>
+                        <td>9, 10</td>
+                    </tr>
+                    <tr>
+                        <th>Timer 2</th>
+                        <td>8-bit</td>
+                        <td><code>tone</code></td>
+                        <td>11, 3</td>
+                    </tr>
+                </table>
+            </div>
+            <a href="#fn:1" id="fnref:1">[1]</a>
+
+            <p>Changing the options of timers that the Arduino relies on can cause broken behaviour. In this case, we'll be using (and abusing) Timer 1 and Timer 2. Which is OK since our project won't be using servo or <code>tone</code> functions.</p>
+
+            <p>How hardware timers work is quite simple. A timer is a counter that constantly increases. When it hits the unsigned integer limit it resets back to 0. 8-bit timer, <code>TOP = 255</code>. 16-bit timer, <code>TOP = 65535</code>. Each timer has two output comare registers (OCRnA/OCRnB). When the timer counter is equal to an output compare register, some action will be performed. You can configure the output compare register to, activate a hardware interrupt, reset the timer to 0 early, or output PWM to a pin.</p>
+
+            <p>Usually, the timer counter increases at the speed of the CPU clock, 16MHz on the ATmega328P. Alternatively, you can use an external clock to increment the timer counter. There is a configuration option in the timers called a prescaler. The prescaler divides the clock frequency to slow-down the timer's counting speed. By default, the prescaler is set to divide by <code>0</code> which will just disable our timer. We won't be using the prescaler here, so we'll just configure it to divide by <code>1</code>.</p>
+
+            <p>Sadly, configuring the hardware timers is a huge pain. You have to set a bunch of discontinous bits in various registers. The <a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf">ATmega328P Manual</a> documents them quite nicely and so does this <a href="https://avr-guide.github.io/timers-on-the-atmega328/">online guide</a>, but we'll just focus on the options we care about here.</p>
+
+            <p>First things first, we want to be able to loop through the audio samples in a timely manner. Specifically, we want to loop through the audio samples at a rate of 8,000 samples per second, because that is our sample rate. We'll do this using Timer 1. We'll set Timer 1 to CTC mode (Clear Timer on Compare match) which will reset the timer to 0 when it reaches the value of an output compare register. Then we can change the output compare register to make our timer faster or slower.</p>
+
+            <figure>
+                <img width="600" height="200" src="ctc.png">
+                <figcaption>A visualization a timer counter in CTC mode. <code>OCRn</code> (output compare register) is set to 100.</figcaption>
+            </figure>
+
+            <p>We can use this handy formula to figure out what value to set our output compare register to:</p>
+
+            <code class="c"><sx-sym>OCRn</sx-sym> = (<sx-sym>clockSpeed</sx-sym> / <sx-sym>prescalerValue</sx-sym>) * <sx-sym>timeSecs</sx-sym> - <sx-num>1</sx-num></code>
+
+            <p><code>clockSpeed</code> is how fast our timer increases. Since we have a prescaler of 1 and we want a <code>timeSecs</code> of 1/8000 we can simplify to:</p>
+
+            <code class="c"><sx-sym>OCRn</sx-sym> = <sx-sym>clockSpeed</sx-sym> / <sx-num>8000</sx-num> - <sx-num>1</sx-num></code>
+
+            <p>Finally, we need to tell the timer to interrupt when it resets. We have to disable interrupts while configuring the timer because it might interrupt in the middle of us configuring it. Here is the code that will configure our timer.<sup><a href="#fn:2" id="fnref:2">[2]</a></sup></p>
+
+            <pre><code class="c">
+    <sx-kwd>void</sx-kwd> <sx-fn>setup</sx-fn>() {
+        <sx-com>// Disable interrupts temporarily.</sx-com>
+        <sx-fn>cli</sx-fn>();
+
+        <sx-com>// Turn on CTC (Clear Timer on Compare match) for Timer 1</sx-com>
+        <sx-sym>TCCR1A</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>WGM10</sx-sym>);
+        <sx-sym>TCCR1A</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>WGM11</sx-sym>);
+        <sx-sym>TCCR1B</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>WGM12</sx-sym>);
+        <sx-sym>TCCR1B</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>WGM13</sx-sym>);
+
+        <sx-com>// Set prescaler to divide by 1</sx-com>
+        <sx-sym>TCCR1B</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>CS10</sx-sym>);
+        <sx-sym>TCCR1B</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>CS11</sx-sym>);
+        <sx-sym>TCCR1B</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>CS12</sx-sym>);
+
+        <sx-com>// Set compare register to go at the speed of 8KHz.</sx-com>
+        <sx-com>// F_CPU is the CPU clock cycle Hz, or how fast the timer increases.</sx-com>
+        <sx-sym>OCR1A</sx-sym> = <sx-sym>F_CPU</sx-sym> / <sx-num>8000</sx-num> - <sx-num>1</sx-num>;
+
+        <sx-com>// Enable interrupts when timer counter == OCR1A</sx-com>
+        <sx-sym>TIMSK1</sx-sym> |= <sx-id>_BV</sx-id>(<sx-sym>OCIE1A</sx-sym>);
+
+        <sx-com>// Re-enable interrupts.</sx-com>
+        <sx-fn>sei</sx-fn>();
+    }
+            </code></pre>
+
+            <p>Then we can create an <b>I</b>nterrupt <b>S</b>ervice <b>R</b>outine that activates when our timer resets.</p>
+
+            <pre><code class="c">
+    <sx-com>// Interrupt vector for OCR1A</sx-com>
+    <sx-kwd>ISR</sx-kwd>(<sx-id>TIMER1_COMPA_vect</sx-id>) {
+        <sx-com>// This will be called 8,000 times per second.</sx-com>
+        <sx-com>// Do nothing for now.</sx-com>
+    }
+            </code></pre>
+
+            <p>Now we need to output PWM data onto a speaker pin. To do this, we'll need to understand how timer PWM modes work. In PWM mode, each timer has specific pins that they output to. (refer to the table above to see which pins each timer outputs to) Since there are two output compare registers for each timer (OCRnA/OCRnB), each timer can output to two pins.</p>
+
+            <p>There are two PWM modes, phase correct PWM and fast PWM. Fast PWM counts up to <code>TOP</code> and then immediately resets to 0, while phase correct PWM counts up to <codee>TOP</codee> and then counts back down to 0. <code>TOP</code> is the integer limit by default, but it can be set to the value of an output compare register.</p>
+
+            <figure>
+                <img width="600" height="200" src="fast_pwm.png">
+                <figcaption>A visualization of a timer counter using fast PWM.</figcaption>
+            </figure>
+
+            <figure>
+                <img width="600" height="200" src="phase_correct_pwm.png">
+                <figcaption>A visualization of a timer counter using phase correct PWM.</figcaption>
+            </figure>
+
+            <p>In each PWM mode, there are two PWM output modes. Inverting and non-inverting. In non-inverting mode, the timer outputs <code>HIGH</code> to it's designated pin when it is less than the output compare register and outputs <code>LOW</code> when it is greater than the output compare register, and vice versa for inverting mode.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th></th>
+                        <th>TCNTn &lt;= OCRn</th>
+                        <th>TCNTn &gt; OCRn</th>
+                    </tr>
+                    <tr>
+                        <th>Non-Inverting</th>
+                        <td>HIGH</td>
+                        <td>LOW</td>
+                    </tr>
+                    <tr>
+                        <th>Inverting</th>
+                        <td>LOW</td>
+                        <td>HIGH</td>
+                    </tr>
+                </table>
+            </div>
+
+            <figure>
+                <img width="600" height="400" src="fast_pwm_output_example.png">
+                <figcaption>A visualization of a timer in non-inverting fast PWM mode and it's corresponding pin output when <code>OCRn = 100</code>. The blue on the top is the value of the timer counter, the blue on the bottom is the output pin voltage level, and the red is the value of <code>OCRn</code>. See how changing <code>OCRn</code> could affect the PWM duty cycle.</figcaption>
+            </figure>
+
+            <p>For this project, we'll be using Timer 2 in fast PWM mode. For now we will be making it output to just pin 11, but later on we'll get it to output to two pins at once for better audio quality. Here is the code that will configure Timer 2.</p>
+
+            <pre><code class="c">
+    <sx-com>// Turn on fast PWM mode for Timer 2.</sx-com>
+    <sx-sym>TCCR2A</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>WGM20</sx-sym>);
+    <sx-sym>TCCR2A</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>WGM21</sx-sym>);
+    <sx-sym>TCCR2B</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>WGM22</sx-sym>);
+
+    <sx-com>// Turn on non-inverting mode for pin 11.</sx-com>
+    <sx-com>// Output on pin 11 will be HIGH when TCNT2 <= OCR2A and LOW when TCNT2 > OCR2A</sx-com>
+    <sx-sym>TCCR2A</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>COM2A0</sx-sym>);
+    <sx-sym>TCCR2A</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>COM2A1</sx-sym>);
+
+    <sx-com>// No prescaler. (set to divide by 1)</sx-com>
+    <sx-sym>TCCR2B</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>CS20</sx-sym>);
+    <sx-sym>TCCR2B</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>CS21</sx-sym>);
+    <sx-sym>TCCR2B</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>CS22</sx-sym>);
+            </code></pre>
+
+            <p>Now whenever we set <code class="c"><sx-sym>OCR2A</sx-sym></code> we should see output on pin 11. After connecting a speaker to pin 11, let's update our ISR to loop through the audio samples and play them.</p>
+
+            <pre><code class="c">
+    <sx-com>// Variables modified by interrupts need to be marked "volatile"</sx-com>
+    <sx-kwd>volatile</sx-kwd> <sx-kwd>int</sx-kwd> <sx-sym>sample_idx</sx-sym> = <sx-num>0</sx-num>;
+    
+    <sx-kwd>ISR</sx-kwd>(<sx-id>TIMER1_COMPA_vect</sx-id>) {
+        <sx-sym>OCR2A</sx-sym> = <sx-fn>pgm_read_byte</sx-fn>(&<sx-sym>audio_data</sx-sym>[<sx-sym>sample_idx</sx-sym>++]);
+        <sx-kwd>if</sx-kwd> (<sx-sym>sample_idx</sx-sym> == <sx-id>sizeof</sx-id>(<sx-sym>audio_data</sx-sym>)) <sx-sym>sample_idx</sx-sym> = <sx-num>0</sx-num>;
+    }
+            </code></pre>
+
+            <audio controls src="example.wav"></audio>
+
+            <p>Ahhh, music to my ears.</p>
+
+            <h2 id="midi-synthesizer">MIDI Synthesizer <a class="anchor" href="#midi-synthesizer">#</a></h2>
+
+            <p>Now we know how to play PWM audio. We need to write a MIDI synthesizer to generate that PWM audio. To start off, we'll need to understand how MIDI files work and how to parse them.</p>
+
+            <h3 id="midi-file-format">MIDI File Format <a class="anchor" href="#midi-file-format">#</a></h3>
+
+            <p>MIDI is not just a file format, but a streaming format too. It's used to both store music and to communicate music between devices. When you connect a MIDI keyboard to your computer, the keyboard will speak to your computer in MIDI.</p>
+
+            <p>There are (as of writing) 3 MIDI formats. 0, 1, and 2. Each new format version supports more features. There are a multitude of differences between the formats, but the primary ones are the following.</p>
+
+            <ul>
+                <li>In format 0. A MIDI file has one track and is essentially a list of notes, along with some metadata like tempo or song name.</li>
+                <li>In format 1. MIDI now supports multiple tracks. These tracks are played at the same time.</li>
+                <li>In format 2. MIDI can now play tracks at different times instead of being forced to play them in sync.</li>
+            </ul>
+
+            <p>Format 1 is most common and unless you plan to create a comprehensive MIDI file parser, that is what you should be trying to parse. Here are some resources that were useful to me when I was learning the format.</p>
+
+            <ul>
+                <li><a href="https://midimusic.github.io/tech/midispec.html#BM3_">midimusic.github.io</a> - A detailed but somewhat hard to follow explanation of the MIDI specification.</li>
+                <li><a href="http://www.petesqbsite.com/sections/express/issue18/midifilespart1.html">petesqbsite</a> - A more friendly but less detailed explanation.</li>
+            </ul>
+
+            <p>Bring out your favourite <a href="hexed.it">hex editor</a> because we're going to be writing a MIDI file by hand. After all, it's the best way to learn how things work.</p>
+
+            <p>We'll be writing a format 1 MIDI file. Every MIDI file should start with the hex <code class="py"><sx-kwd>4D 54 68 64</sx-kwd></code> which happens to be <code>MThd</code> or <b>M</b>IDI <b>T</b>rack <b>h</b>ea<b>d</b>er in ASCII. After it, is a 4-byte header length. The length of the MThd header is always 6 bytes. The MIDI file format stores numbers in big-endian, so our hex should now look like this.</p>
+
+            <code class="py"><sx-kwd>4D 54 68 64</sx-kwd> <sx-num>00 00 00 06</sx-num></code>
+
+            <p>Then after that is three 16-bit numbers for the format version, number of tracks, and division.</p>
+
+            <code class="py"><sx-kwd>4D 54 68 64</sx-kwd> <sx-num>00 00 00 06</sx-num> <sx-sym>00 01</sx-sym> <sx-num>00 01</sx-num> <sx-sym>01 80</sx-sym></code>
+
+            <p>In this example, the format version is 1, and the number of tracks is 1. The division specifies how many MIDI ticks are in a quarter note, which let's us control how fast our music is played. In this example, we set it to <code class="py"><sx-sym>01 80</sx-sym></code> which is <code>384</code> in decimal, 384 ticks in a quarter note.</p>
+
+            <p>After the MThd chunk, we have our first "track chunk". Every track chunk starts with <code>MTrk</code> or hex <code class="py"><sx-kwd>4D 54 72 6B</sx-kwd></code> and is followed by a 4-byte header length, similar to MThd.</p>
+
+            <code class="py"><sx-kwd>4D 54 72 6B</sx-kwd> <sx-num>?? ?? ?? ??</sx-num></code>
+
+            <p>Since we don't know how long we want our track to be yet, we'll leave that part empty.</p>
+
+            <p>After the MTrk header, is a series of track events. Some examples of track events are "note on", "note off", or "end of track". Let's just play a single tone. That means we'll need a "note on" event, followed by a "note off" event, and ending in an "end of track" event.</p>
+
+            <p>Every track event is preceeded by a delta time value, which indicates how long to wait before executing that event. For example, if I have a note on event preceeded by a delta time of 100. Then I would need to wait 100 ticks before playing that note.</p>
+
+            <p>Delta time is stored as a "variable length quantity" which is a format MIDI uses to encode certain numbers. The basic idea of it is that smaller numbers take up less space than bigger numbers. Variable length quantities are represented as 7-bits per byte. All bytes except the last, have bit 7 set.</p>
+
+            <p>The number <code>255</code> encoded as a variable length quantity would look like the following in binary.</p>
+
+            <code class="py"><sx-sym>1</sx-sym><sx-num>0000001</sx-num> <sx-sym>0</sx-sym><sx-num>1111111</sx-num></code>
+
+            <p>In simple terms, the last bit says "you haven't reached the end, keep looking", and all the digits except the last ones are appended to each other.</p>
+
+            <pre><code class="py"><sx-sym>1</sx-sym><sx-num>0000001</sx-num> <sx-sym>0</sx-sym><sx-num>1111111</sx-num></code></pre>
+
+            <pre><code class="py"><sx-sym>_</sx-sym><sx-num>0000001</sx-num> <sx-sym>_</sx-sym><sx-num>1111111</sx-num> = 255</code></pre>
+
+            <p>For reference, here is some C code for parsing VLQs into a 64-bit integer.</p>
+
+            <pre><code class="c">
+    <sx-kwd>uint64_t</sx-kwd> <sx-sym>value</sx-sym> = <sx-num>0</sx-num>;
+
+    <sx-kwd>while</sx-kwd> (<sx-id>true</sx-id>) {
+        <sx-kwd>uint8_t</sx-kwd> <sx-sym>b</sx-sym> = <sx-fn>read_byte</sx-fn>();
+        <sx-sym>value</sx-sym> = (<sx-sym>value</sx-sym> << <sx-num>7</sx-num>) | (<sx-sym>b</sx-sym> & <sx-num>0x7f</sx-num>);
+        <sx-kwd>if</sx-kwd> (<sx-sym>b</sx-sym> >> <sx-num>7</sx-num> == <sx-num>0</sx-num>) <sx-kwd>break</sx-kwd>;
+    }
+            </code></pre>
+
+            <p>Now let's look at the structure of a note on event.</p>
+
+            <code class="py"><sx-num>1001</sx-num><sx-sym>nnnn</sx-sym> <sx-num>0</sx-num><sx-sym>kkkkkkk</sx-sym> <sx-num>0</sx-num><sx-sym>vvvvvvv</sx-sym></code>
+
+            <p>As you can see, a note on event is three bytes long. <code class="py"><sx-sym>n</sx-sym></code> is the MIDI channel number. MIDI has 16 different channels which can be assigned different instruments. <code class="py"><sx-sym>k</sx-sym></code> is a 7-bit number representing the MIDI key, like B# or G♭. <code class="py"><sx-sym>v</sx-sym></code> is the velocity or how fast the key is pressed, usually this just equates to loudness but fancy synthesizers can use this to change how the notes sound. If the velocity is set to 0, the note on event will act as if it was a note off event.</p>
+
+            <p>The structure of a note off event is very similar.</p>
+
+            <code class="py"><sx-num>1000</sx-num><sx-sym>nnnn</sx-sym> <sx-num>0</sx-num><sx-sym>kkkkkkk</sx-sym> <sx-num>0</sx-num><sx-sym>vvvvvvv</sx-sym></code>
+
+            <p>And again, the velocity can change how the note sounds, even in a note off event. For our synthesizer, because it is so simple, we will just ignore velocity entirely.</p>
+
+            <p>Here is a table that maps a musical note to a 7-bit note number.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Octave</th>
+                        <th>C</th>
+                        <th>C#</th>
+                        <th>D</th>
+                        <th>D#</th>
+                        <th>E</th>
+                        <th>F</th>
+                        <th>F#</th>
+                        <th>G</th>
+                        <th>G#</th>
+                        <th>A</th>
+                        <th>A#</th>
+                        <th>B</th>
+                    </tr>
+                    <tr>
+                        <th>0</th>
+                        <td>0</td>
+                        <td>1</td>
+                        <td>2</td>
+                        <td>3</td>
+                        <td>4</td>
+                        <td>5</td>
+                        <td>6</td>
+                        <td>7</td>
+                        <td>8</td>
+                        <td>9</td>
+                        <td>10</td>
+                        <td>11</td>
+                    </tr>
+                    <tr>
+                        <th>1</th>
+                        <td>12</td>
+                        <td>13</td>
+                        <td>14</td>
+                        <td>15</td>
+                        <td>16</td>
+                        <td>17</td>
+                        <td>18</td>
+                        <td>19</td>
+                        <td>20</td>
+                        <td>21</td>
+                        <td>22</td>
+                        <td>23</td>
+                    </tr>
+                    <tr>
+                        <th>2</th>
+                        <td>24</td>
+                        <td>25</td>
+                        <td>26</td>
+                        <td>27</td>
+                        <td>28</td>
+                        <td>29</td>
+                        <td>30</td>
+                        <td>31</td>
+                        <td>32</td>
+                        <td>33</td>
+                        <td>34</td>
+                        <td>35</td>
+                    </tr>
+                    <tr>
+                        <th>3</th>
+                        <td>36</td>
+                        <td>37</td>
+                        <td>38</td>
+                        <td>39</td>
+                        <td>40</td>
+                        <td>41</td>
+                        <td>42</td>
+                        <td>43</td>
+                        <td>44</td>
+                        <td>45</td>
+                        <td>46</td>
+                        <td>47</td>
+                    </tr>
+                    <tr>
+                        <th>4</th>
+                        <td>48</td>
+                        <td>49</td>
+                        <td>50</td>
+                        <td>51</td>
+                        <td>52</td>
+                        <td>53</td>
+                        <td>54</td>
+                        <td>55</td>
+                        <td>56</td>
+                        <td>57</td>
+                        <td>58</td>
+                        <td>59</td>
+                    </tr>
+                    <tr>
+                        <th>5</th>
+                        <td>60</td>
+                        <td>61</td>
+                        <td>62</td>
+                        <td>63</td>
+                        <td>64</td>
+                        <td>65</td>
+                        <td>66</td>
+                        <td>67</td>
+                        <td>68</td>
+                        <td>69</td>
+                        <td>70</td>
+                        <td>71</td>
+                    </tr>
+                    <tr>
+                        <th>6</th>
+                        <td>72</td>
+                        <td>73</td>
+                        <td>74</td>
+                        <td>75</td>
+                        <td>76</td>
+                        <td>77</td>
+                        <td>78</td>
+                        <td>79</td>
+                        <td>80</td>
+                        <td>81</td>
+                        <td>82</td>
+                        <td>83</td>
+                    </tr>
+                    <tr>
+                        <th>7</th>
+                        <td>84</td>
+                        <td>85</td>
+                        <td>86</td>
+                        <td>87</td>
+                        <td>88</td>
+                        <td>89</td>
+                        <td>90</td>
+                        <td>91</td>
+                        <td>92</td>
+                        <td>93</td>
+                        <td>94</td>
+                        <td>95</td>
+                    </tr>
+                    <tr>
+                        <th>8</th>
+                        <td>96</td>
+                        <td>97</td>
+                        <td>98</td>
+                        <td>99</td>
+                        <td>100</td>
+                        <td>101</td>
+                        <td>102</td>
+                        <td>103</td>
+                        <td>104</td>
+                        <td>105</td>
+                        <td>106</td>
+                        <td>107</td>
+                    </tr>
+                    <tr>
+                        <th>9</th>
+                        <td>108</td>
+                        <td>109</td>
+                        <td>110</td>
+                        <td>111</td>
+                        <td>112</td>
+                        <td>113</td>
+                        <td>114</td>
+                        <td>115</td>
+                        <td>116</td>
+                        <td>117</td>
+                        <td>118</td>
+                        <td>119</td>
+                    </tr>
+                    <tr>
+                        <th>10</th>
+                        <td>120</td>
+                        <td>121</td>
+                        <td>122</td>
+                        <td>123</td>
+                        <td>124</td>
+                        <td>125</td>
+                        <td>126</td>
+                        <td>127</td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>Let's write in hex, a note on event on channel 0 (<code class="py"><sx-sym>90</sx-sym></code>) with note C (<code class="py"><sx-num>30</sx-num></code>) and a velocity of 127 (<code class="py"><sx-sym>7F</sx-sym></code>) (the max value). Remember, every event needs to be preceeded by a delta time value. We want the note to play immediately so we will give it a delta time of <code class="py"><sx-num>00</sx-num></code>.</p>
+
+            <code class="py"><sx-num>00</sx-num> <sx-sym>90</sx-sym> <sx-num>30</sx-num> <sx-sym>7F</sx-sym></code>
+
+            <p>Then follow it with a note off event on channel 0 (<code class="py"><sx-sym>80</sx-sym></code>) with note C (<code class="py"><sx-num>30</sx-num></code>) and a velocity of 0 (<code class="py"><sx-sym>00</sx-sym></code>). Since we don't want to instantly turn off the note, we'll give the note off event a delta time of 5000. 5000 encoded as a VLQ is <code class="py"><sx-num>A7 08</sx-num></code>.</p>
+
+            <code class="py"><sx-num>A7 08</sx-num> <sx-sym>80</sx-sym> <sx-num>30</sx-num> <sx-sym>00</sx-sym></code>
+
+            <p>Then to finish it off, we want to create an "end of track" event. Which is simply the following in hex.</p>
+
+            <code class="py"><sx-num>00</sx-num> <sx-sym>FF 2F 00</sx-sym></code>
+
+            <p>Now that we're done we can fill in the MTrk header length which we previously left blank. Putting it together we now have.</p>
+
+            <pre><code class="py">
+<sx-kwd>4D 54 68 64</sx-kwd> <sx-num>00 00 00 06</sx-num> <sx-sym>00 01</sx-sym> <sx-num>00 01</sx-num> <sx-sym>01 80</sx-sym>
+<sx-kwd>4D 54 72 6B</sx-kwd> <sx-num>00 00 00 0C</sx-num>
+<sx-num>00</sx-num> <sx-sym>90</sx-sym> <sx-num>30</sx-num> <sx-sym>7F</sx-sym>
+<sx-num>A7 08</sx-num> <sx-sym>80</sx-sym> <sx-num>30</sx-num> <sx-sym>00</sx-sym>
+<sx-num>00</sx-num> <sx-sym>FF 2F 00</sx-sym>
+            </code></pre>
+
+            <p>Our very own hand-written MIDI file!</p>
+
+            <audio controls src="tone-c4.wav"></audio>
+
+            <h3 id="midi-to-wav">MIDI to WAV <a class="anchor" href="#midi-to-wav">#</a></h3>
+
+            <p>Now that we understand how MIDI works, and we understand how WAV works. Let's make a MIDI to WAV file synthesizer!</p>
+
+            <p>Immediately we're faced with a problem. MIDI is a format that stores music as notes, while WAV is a format that stores music as audio samples. Earlier we learned about a formula that generates audio samples from a given frequency.</p>
+
+            <code class="py"><sx-id>math</sx-id>.<sx-fn>sin</sx-fn>(<sx-num>440</sx-num> * (<sx-sym>i</sx-sym>/<sx-sym>sample_rate</sx-sym>) * <sx-id>math</sx-id>.<sx-sym>tau</sx-sym>)</code>
+
+            <p>That's great, but how do we find the frequency of a note, say, B4? Well the frequency of B in octave 4 happens to be 493.88 Hz, but, that's a bit of a pain to remember. Is there a useful formula that can help us calculate the frequency of a note? Yes! There is!</p>
+
+            <p>In Western musical notation there is something called <a href="https://en.wikipedia.org/wiki/12_equal_temperament">12 equal temperament</a> where one octave is divided into 12 parts, each part is on a logarithmic scale, and each part is assigned a note! That's right. 12 notes per octave. The notes frequencies are on a logarithmic scale. And the formula we use to calculate them.</p>
+
+            <code class="py"><sx-num>440</sx-num> * <sx-num>2</sx-num><sup><sx-sym>note</sx-sym>/<sx-num>12</sx-num></sup></code>
+
+            <p><code class="py"><sx-sym>note</sx-sym></code> is a number where 0 = A4. That means A#4 = 1 and B4 = 2. Each step increases the note by one semitone.</p>
+
+            <p>That's great but MIDI notes are shifted by 57. In twelve equal temperament C4 = -9 but in MIDI C4 = 48. So we need to adjust our formula to subtract by 57.</p>
+
+            <code class="py"><sx-num>440</sx-num> * <sx-num>2</sx-num><sup>(<sx-sym>note</sx-sym>-<sx-num>57</sx-num>)/<sx-num>12</sx-num></sup></code>
+
+            <p>Let's plug our new found formula into our program to start synthesizing MIDI. I'll use Python in my examples, but you should be using your own MIDI and WAV file parsers.</p>
+
+            <pre><code class="py">
+    <sx-com># Play C4 for 5 seconds.</sx-com>
+
+    <sx-sym>sample_rate = 44100</sx-sym>
+    <sx-sym>f</sx-sym> = <sx-id>wave</sx-id>.<sx-fn>open</sx-fn>(<sx-str>"out.wav"</sx-str>, <sx-str>"wb"</sx-str>)
+    <sx-sym>f</sx-sym>.<sx-fn>setframerate</sx-fn>(<sx-sym>sample_rate</sx-sym>)
+    <sx-sym>f</sx-sym>.<sx-fn>setnchannels</sx-fn>(<sx-num>1</sx-num>)
+    <sx-sym>f</sx-sym>.<sx-fn>setsampwidth</sx-fn>(<sx-num>1</sx-num>)
+    
+    <sx-sym>samples</sx-sym> = []
+    <sx-sym>note</sx-sym> = 48
+    <sx-sym>frequency</sx-sym> = <sx-num>440</sx-num> * <sx-num>2</sx-num>**((<sx-sym>note</sx-sym>-<sx-num>57</sx-num>)/<sx-num>12</sx-num>)
+
+    <sx-kwd>for</sx-kwd> <sx-sym>i</sx-sym> <sx-kwd>in</sx-kwd> <sx-id>range</sx-id>(<sx-sym>sample_rate</sx-sym> * <sx-num>5</sx-num>):
+        <sx-sym>sample_float</sx-sym> = <sx-id>math</sx-id>.<sx-fn>sin</sx-fn>(<sx-sym>frequency</sx-sym> * (<sx-sym>i</sx-sym>/<sx-sym>sample_rate</sx-sym>) * <sx-id>math</sx-id>.<sx-sym>tau</sx-sym>)
+        <sx-sym>sample_byte</sx-sym> = <sx-id>math</sx-id>.<sx-fn>floor</sx-fn>((<sx-sym>sample_float</sx-sym>+<sx-num>1</sx-num>)/<sx-num>2</sx-num>*<sx-num>255</sx-num>)
+        <sx-sym>samples</sx-sym>.<sx-fn>append</sx-fn>(<sx-sym>sample_byte</sx-sym>)
+    
+    <sx-sym>f</sx-sym>.<sx-fn>writeframes</sx-fn>(<sx-id>bytes</sx-id>(<sx-sym>samples</sx-sym>))
+            </code></pre>
+
+            <audio controls src="tone-c4.wav"></audio>
+
+            <p>And here's Losing My Religion by R.E.M. synthesized to WAV from a MIDI file.</p>
+
+            <audio controls src="losing-my-religion.wav"></audio>
+
+            <p>If you want to play multiple frequencies polyphonically, you need to add the audio samples together.</p>
+
+            <code class="py"><sx-sym>samples</sx-sym>.<sx-fn>append</sx-fn>(<sx-sym>a</sx-sym> + <sx-sym>b</sx-sym> + <sx-sym>c</sx-sym>)</code>
+
+            <p>Be careful though! Because you're limited to 8-bit numbers, the sound can start to clip once they get too loud or produce strange artifacts if the numbers overflow.</p>
+
+            <h2 id="on-arduino">on Arduino. <a class="anchor" href="#on-arduino">#</a></h2>
+
+            <h3 id="lzw-compression">LZW Compression <a class="anchor" href="#lzw-compression">#</a></h3>
+
+            <p>Earlier I said my <a href="LosingMyReligion.mid">MIDI file</a> of Losing My Religion was 40KB, larger than the 32KB of program memory in the Arduino. To fit the music into memory I first converted the multi-track format 1 MIDI data into a single-track custom-made format that I could feed directly into the Arduino. Then I wrote a compression algorithm that compresses that custom-made format. After doing that, the MIDI data was 16KB, comfortably fitting under the 32KB limit. The Arduino could then decompress data on-the-fly as it was needed.</p>
+
+            <p>The custom-made format is stored as a list of track events.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>Format for Packed MIDI</th>
+                    </tr>
+                    <tr style="height: 8px"></tr>
+                    <tr>
+                        <td>Track Event</td>
+                    </tr>
+                    <tr>
+                        <td>Track Event</td>
+                    </tr>
+                    <tr>
+                        <td>Track Event</td>
+                    </tr>
+                    <tr>
+                        <td>...</td>
+                    </tr>
+                </table>
+            </div>
+            <p>Each track event is a list of notes followed by a delta time value indicating the amount of PCM samples to generate for those notes. The numbers are in big-endian.</p>
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th colspan="2">Format for Track Event</th>
+                    </tr>
+                    <tr>
+                        <th>Data type</th>
+                        <th>Size in bytes</th>
+                    </tr>
+                    <tr style="height: 8px"></tr>
+                    <tr>
+                        <td>NOTE_COUNT</td>
+                        <td>1</td>
+                    </tr>
+                    <tr style="height: 8px"></tr>
+                    <tr>
+                        <td>NOTE</td>
+                        <td>1</td>
+                    </tr>
+                    <tr>
+                        <td>NOTE</td>
+                        <td>1</td>
+                    </tr>
+                    <tr>
+                        <td>NOTE</td>
+                        <td>1</td>
+                    </tr>
+                    <tr>
+                        <td>...</td>
+                        <td>...</td>
+                    </tr>
+                    <tr style="height: 8px"></tr>
+                    <tr>
+                        <td>DELTA_TIME</td>
+                        <td>4</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>For the compression algorithm, I used a form of Lempel-Ziv-Welch or LZW. LZW is a really simple algorithm. In fact it's so simple, here's the psuedo-code for the whole compression algorithm.</p>
+
+            <pre><code class="py">
+    <sx-sym>p</sx-sym> = <sx-fn>next_char</sx-fn>();
+
+    <sx-kwd>while</sx-kwd> <sx-fn>not_eof</sx-fn>():
+        <sx-sym>c</sx-sym> = <sx-fn>next_char</sx-fn>();
+        <sx-kwd>if</sx-kwd> (<sx-sym>p</sx-sym> + <sx-sym>c</sx-sym>) <sx-kwd>in</sx-kwd> <sx-sym>string_table</sx-sym>:
+            <sx-sym>p</sx-sym> += <sx-sym>c</sx-sym>
+        <sx-kwd>else</sx-kwd>:
+            <sx-sym>string_table</sx-sym>.<sx-fn>insert</sx-fn>(<sx-sym>p</sx-sym> + <sx-sym>c</sx-sym>)
+            <sx-sym>compressed_data</sx-sym>.<sx-fn>append_code</sx-fn>(<sx-sym>p</sx-sym>)
+            <sx-sym>p</sx-sym> = <sx-sym>c</sx-sym>
+            </code></pre>
+
+            <p>I made a few changes to the algorithm for my version of this project. In regular LZW you construct a table of patterns as you are decompressing the data. This won't do for Arduino because Arduino doesn't have enough space to store a dynamically changing table of patterns.</p>
+
+            <p>Instead we use LZW to find patterns in the data, we filter out patterns that cost more to store than they save, and then we place a map of "short-codes to patterns" in program memory. Then when decompressing, the decompressor only has to check in the map to see the corresponding pattern that a short-code represents. The pattern map is built in a way where the decompressor can easily index into it.</p>
+
+            <p>The decompressor returns slices of data which allows it to be agnostic over whether the slices it's returning are stored directly in the compressed data or from the pattern map.</p>
+
+            <p>I considered chaining LZW with <a href="https://en.wikipedia.org/wiki/Huffman_coding">Huffman coding</a> to get better compression and I did get part way through the implementation of it before I decided that, because of the "sub-byte level" operations required, it'd probably be too complex to code on the Arduino and the performance overhead of decompression might not be worth it. Of course, if someone was to implement huffman coding you could get much more out of your memory.</p>
+
+            <p>You can see the source code <a href="https://github.com/ogghostjelly/midi2arduino">here</a>.</p>
+
+            <h3 id="bits-bytes-and-performance">Bits, Bytes, and Performance <a class="anchor" href="#bits-bytes-and-performance">#</a></h3>
+
+            <p>Currently our algorithm for generating audio samples from notes is sub-optimal. We absolutely cannot be doing float operations 8,000 times per second on an 8-bit microcontroller. No, no, no. The ATmega328P additionally does not have any hardware integer division instruction, so we can't be doing that either.</p>
+
+            <p>We have a few tricks up our sleeve. First of all, we can use some bit-wise operations to fake division and modulus instructions. <code class="c"><sx-sym>x</sx-sym> >> <sx-sym>n</sx-sym></code> is divide by 2<sup><code class="c"><sx-sym>n</sx-sym></code></sup> and <code class="c"><sx-sym>x</sx-sym> & ((<sx-num>1</sx-num>&lt;&lt;<sx-sym>n</sx-sym>)-<sx-num>1</sx-num>)</code> is modulo 2<sup><code class="c"><sx-sym>n</sx-sym></code></sup>. As long as we ensure our numbers are powers of two we can use these tricks to avoid costly divisions.</p>
+
+            <p>Let's not calculate sin and twelve equal temperament on the Arduino, and instead opt to pre-calculate them and store them in a <code class="c"><sx-sym>sintable</sx-sym></code> and <code class="c"><sx-sym>frequency_table</sx-sym></code> in program memory. After all, we still have 16KB free.</p>
+
+            <p>The length of our sintable should be a power of two so we can easily modulo indexes into it, let's make it 256 bytes long. Our sample rate should be a power of two so we can easily divide by it, let's change it from <code>8000</code> to <code>8192</code> or 2<sup>13</sup></p>
+
+            <p>Previously, our formula was.</p>
+
+            <code class="py"><sx-id>math</sx-id>.<sx-fn>sin</sx-fn>(<sx-sym>frequency</sx-sym> * (<sx-sym>i</sx-sym>/<sx-sym>sample_rate</sx-sym>) * <sx-id>math</sx-id>.<sx-sym>tau</sx-sym>)</code>
+
+            <p>Let's change it to index into our sintable, and hard-code the <code class="py"><sx-sym>sample_rate</sx-sym></code>.</p>
+
+            <code class="c"><sx-sym>sintable</sx-sym>[(<sx-sym>frequency</sx-sym> * (<sx-sym>i</sx-sym>/<sx-num>8192</sx-num>) * <sx-id>math</sx-id>.<sx-sym>tau</sx-sym> * <sx-num>255</sx-num>) % <sx-num>256</sx-num>]</code>
+
+            <p>And then pre-calculate <code class="c">* <sx-id>math</sx-id>.<sx-sym>tau</sx-sym></code> into our sintable.</p>
+
+            <code class="c"><sx-sym>tau_sintable</sx-sym>[(<sx-sym>frequency</sx-sym> * (<sx-sym>i</sx-sym>/<sx-num>8192</sx-num>) * <sx-num>255</sx-num>) % <sx-num>256</sx-num>]</code>
+
+            <p>Then we'll reorder some of the operations to avoid rounding errors.</p>
+
+            <code class="c"><sx-sym>tau_sintable</sx-sym>[((<sx-sym>frequency</sx-sym> * <sx-sym>i</sx-sym> * <sx-num>255</sx-num>) / <sx-num>8192</sx-num>) % <sx-num>256</sx-num>]</code>
+
+            <p>In bit-ops this would be.</p>
+
+            <code class="c"><sx-sym>tau_sintable</sx-sym>[((<sx-sym>frequency</sx-sym> * <sx-sym>i</sx-sym> * <sx-num>255</sx-num>) >> <sx-num>13</sx-num>) & <sx-num>0xff</sx-num>]</code>
+
+            <p>Now our formula for generating audio samples from a note is just a few array indexes, integer multiplications, and bit-wise ops.</p>
+
+            <p>C functions have seemingly a lot of performance overhead on the ATmega328P so I'd suggest putting all your functions in C macros instead.</p>
+
+            <h3 id="faking-polyphonics">Faking Polyphonics <a class="anchor" href="#faking-polyphonics">#</a></h3>
+
+            <p>We can easily get two-voice polyphony by outputting to two pins and wiring them together. Remember to put resistors between the pins or you'll short the ATmega328P like I did.</p>
+
+            <pre><code class="c">
+    <sx-kwd>ISR</sx-kwd>(<sx-id>TIMER1_COMPA_vect</sx-id>) {
+        <sx-com>// Output on pin 11</sx-com>
+        <sx-sym>OCR2A</sx-sym> = <sx-fn>generate_audio_sample</sx-fn>();
+        <sx-com>// Output on pin 3</sx-com>
+        <sx-sym>OCR2B</sx-sym> = <sx-fn>generate_audio_sample</sx-fn>();
+    }
+    
+    <sx-kwd>void</sx-kwd> <sx-fn>setup</sx-fn>() {
+        <sx-com>// Previous timer setup code</sx-com>
+
+        ...
+
+        <sx-com>// Turn on non-inverting mode for pin 3.</sx-com>
+        <sx-com>// Output on pin 3 when OCR2B is changed.</sx-com>
+        <sx-sym>TCCR2A</sx-sym> &= ~<sx-id>_BV</sx-id>(<sx-sym>COM2B0</sx-sym>);
+        <sx-sym>TCCR2A</sx-sym> |=  <sx-id>_BV</sx-id>(<sx-sym>COM2B1</sx-sym>);
+    }
+            </code></pre>
+
+            <p>But, earlier I said we had up-to ten notes playing at once in the MIDI file. This is impossible to play on the Arduino. Not only because there aren't enough pins to output ten notes, but there isn't enough CPU bandwidth to generate 10 audio samples in 1/8000th of a second either... But who said we had to play ten notes at once? It only needs to sound like ten notes at once.</p>
+
+            <p>The solution is pretty simple. Whenever we have multiple notes playing at once. We alternate between them. For example, we have C, D, E, and F playing at the same time. On the first tick we'll play C and D simultaneously on different pins. And on the next tick we'll play E and F simultaneously. If we alternate fast enough it will sound polyphonic.</p>
+
+            <p>That's the issue though. If we alternate fast enough... 8192 Hz is too slow and sounds bad. We can bump our sample rate up to 16384 or 2<sup>14</sup> to hide the auditory artifacts. This of course means that we're more constrained on CPU bandwidth because we have to generate audio samples faster.</p>
+
+            <h2 id="the-end">The End. <a class="anchor" href="#the-end">#</a></h2>
+
+            <p>What a journey! I'll be honest, I had wav files playing on the Arduino in the first three days. But I thought, No! That's not enough! I want polyphonic 4 minute song now! And then 2 weeks passed by and I don't really remember what happened or how I got here but it's in my hands now and it plays music.</p>
+
+            <p>TODO: Put showcase video here.</p>
+
+            <p>Yes that is in fact an Arduino even though it doesn't look like it.</p>
+
+            <p>I hope you enjoyed reading this. :)</p>
+
+            <h2 id="footnotes">Footnotes <a class="anchor" href="#footnotes">#</a></h2>
+
+            <p><a id="fn:0" href="#fn:0">[0]</a> There is a more detailed explanation about RIFF at <a href="https://www.johnloomis.org/cpe102/asgn/asgn1/riff.html">johnloomis.org/cpe102/asgn/asgn1/riff.html</a> <a href="#fnref:0" role="doc-backlink">↩︎</a></p>
+
+            <p>
+                <a id="fn:1" href="#fn:1">[1]</a> You can find a more detailed table at <a href="https://deepbluembedded.com/arduino-timers#5-arduino-timers-comparison">deepbluembedded.com/arduino-timers#5-arduino-timers-comparison</a> <a href="#fnref:1" role="doc-backlink">↩︎</a>
+            </p>
+
+            <p>
+                <a id="fn:2" href="#fn:2">[2]</a> You might be wondering what all those acronyms mean (darn hardware engineers).
+            <ul>
+                <li><code>TCCR</code> stands for <b>T</b>imer <b>C</b>ounter <b>C</b>ontrol <b>R</b>egister</li>
+                <li><code>TCNT</code> stands for <b>T</b>imer <b>C</b>ou<b>NT</b></li>
+                <li><code>WGM</code> stands for <b>W</b>aveform <b>G</b>eneration <b>M</b>ode</li>
+                <li><code>CS</code> stands for <b>C</b>lock <b>S</b>elect</li>
+                <li><code>TIMSK</code> stands for <b>T</b>imer <b>I</b>nterrupt <b>M</b>a<b>SK</b> register</li>
+                <li><code>OCIE</code> stands for <b>O</b>utput <b>C</b>ompare match <b>I</b>nterrupt <b>E</b>nable</li>
+                <li><code>cli</code> stands for <b>CL</b>ear <b>I</b>nterrupt flag</li>
+                <li><code>sei</code> stands for <b>SE</b>t <b>I</b>nterrupt flag</li>
+            </ul>
+            See more in the <a href="https://ww1.microchip.com/downloads/en/DeviceDoc/Atmel-7810-Automotive-Microcontrollers-ATmega328P_Datasheet.pdf">ATmega328P Manual</a>. <a href="#fnref:2" role="doc-backlink">↩︎</a>
+            </p>
+        </main>
+    </div>
+</body>
+
+</html>
