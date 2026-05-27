@@ -1,3 +1,6 @@
+C++ -- "Hey, let's bolt OOP onto C to get people to use it".
+Rust -- "Hey, let's bolt functional onto C++ to get people to use it".
+
 It's funny when people say Rust makes it too easy to add dependencies, because if I don't optimize dependencies on my 10 year old laptop, `rust-analyzer` just refuses to start.
 
 I'm enjoying writing CSS? what?
