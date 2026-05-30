@@ -1,3 +1,7 @@
+Types are just constraints on values. Interfaces are just constraints on types.
+By transitive property, interfaces are just constraints on values.
+Type systems are just a fancy way of doing comptime if statements.
+
 C++ -- "Hey, let's bolt OOP onto C to get people to use it".
 Rust -- "Hey, let's bolt functional onto C++ to get people to use it".
 
