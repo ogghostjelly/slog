@@ -5,6 +5,25 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>slog arduino synth</title>
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ogghostjelly.github.io/slog/arduino-synth/index.html">
+    <meta property="og:site_name" content="ogj slog">
+    <meta property="twitter:card" content="summary_large_image">
+
+    <meta name="title" content="Writing a MIDI synthesizer for Arduino">
+    <meta property="og:title" content="Writing a MIDI synthesizer for Arduino">
+    <meta property="twitter:title" content="Writing a MIDI synthesizer for Arduino">
+
+    <meta name="description" content="Let's play 'Losing My Religion' by R.E.M. on the limited hardware of an Arduino. Hopefully we'll learn something new!">
+    <meta property="og:description" content="Let's play 'Losing My Religion' by R.E.M. on the limited hardware of an Arduino. Hopefully we'll learn something new!">
+    <meta property="twitter:description" content="Let's play 'Losing My Religion' by R.E.M. on the limited hardware of an Arduino. Hopefully we'll learn something new!">
+
+    <meta property="og:image" content="fast_pwm_output_example.gif">
+    <meta property="twitter:image" content="fast_pwm_output_example.gif">
+    <meta property="og:image:alt" content="A visualization of a timer in non-inverting fast PWM mode and it's corresponding pin output. Don't know what those words mean? Well let's learn them together!">
+    <meta property="twitter:image:alt" content="A visualization of a timer in non-inverting fast PWM mode and it's corresponding pin output. Don't know what those words mean? Well let's learn them together!">
+
     <style>
         .table-container,
         pre {
@@ -586,8 +605,8 @@
             </div>
 
             <figure>
-                <img width="600" height="400" src="fast_pwm_output_example.png">
-                <figcaption>A visualization of a timer in non-inverting fast PWM mode and it's corresponding pin output when <code>OCRn = 100</code>. The blue on the top is the value of the timer counter, the blue on the bottom is the output pin voltage level, and the red is the value of <code>OCRn</code>. See how changing <code>OCRn</code> could affect the PWM duty cycle.</figcaption>
+                <img width="600" height="400" src="fast_pwm_output_example.gif">
+                <figcaption>A visualization of a timer in non-inverting fast PWM mode and it's corresponding pin output. The blue on the top is the value of the timer counter, the blue on the bottom is the output pin voltage level, and the red is the value of <code>OCRn</code>. See how changing <code>OCRn</code> affects the PWM duty cycle.</figcaption>
             </figure>
 
             <p>For this project, we'll be using Timer 2 in fast PWM mode. For now we will be making it output to just pin 11, but later on we'll get it to output to two pins at once for better audio quality. Here is the code that will configure Timer 2.</p>
