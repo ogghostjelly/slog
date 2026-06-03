@@ -1,3 +1,11 @@
+Software abstractions should be discovered organically rather than invented.
+Too many abstractions are invented speculatively by some guy in a hammock thinking about what a nice why to make software would be.
+Build abstractions organically, as you need them.
+
+Model software in the way that is most useful, not in the way your brain thinks about it.
+I guarantee you, for most cases, your mental model of the problem is neither easy to manipulate in code nor performant.
+Don't shoot yourself with fanciful abstraction ideology.
+
 I hate Java. It thinks creating opaque black boxes is a good idea.
 Yes, give me an "IAbstractTriFunctionEnneadConsumerFactoryPredicateBuilderSingleton".
 Statements dreamed up by the utterly deranged.
