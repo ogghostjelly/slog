@@ -1,3 +1,6 @@
+Racket is really nice and bringing UNIX pipes into the language is a really good idea,
+but having to close them manually is a gigantic pain, especially when the language has no easy way to defer.
+
 premature abstraction
 
 Software abstractions should be discovered organically rather than invented.
