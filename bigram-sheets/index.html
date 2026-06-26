@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog bigram sheets</title>
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: #f8fafd;
+            color: #1f1f1f;
+            font-family: 'Google Sans', 'Google Sans', Verdana, Geneva, Tahoma, sans-serif;
+            line-height: 1.5em;
+        }
+
+        @font-face {
+            font-family: 'Google Sans';
+            src: url('fonts/GoogleSans-VariableFont_GRAD\,opsz\,wght-subset.ttf');
+        }
+
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6 {
+            font-size: 2rem;
+            font-weight: normal;
+            line-height: 2rem;
+        }
+
+        .main-container {
+            background-color: #ffffff;
+            margin: 16px;
+            padding: 16px;
+            border-radius: 1rem;
+            box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+        }
+
+        .note {
+            margin: 16px -40px 16px -40px;
+            padding: 8px 40px 8px 40px;
+            background-color: #d3e3fd;
+            color: #0842a0;
+            transition: background-color 75ms;
+        }
+
+        a {
+            background-color: #ffffff;
+            color: #1f1f1f;
+            text-decoration: none;
+            padding: 0 8px 0 8px;
+            border-radius: 1rem;
+            box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+
+            cursor: pointer;
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+
+            transition: background-color 75ms;
+
+            &:hover {
+                background-color: #ececec;
+            }
+
+            &:active {
+                background-color: #dedede;
+            }
+        }
+
+        .table-container,
+        pre {
+            overflow: scroll;
+        }
+
+        table {
+            border-collapse: collapse;
+        }
+
+        th {
+            font-weight: normal;
+            color: #5e6060;
+            padding: 0 32px 0 32px;
+        }
+
+        th.rowcount,
+        td.rowcount {
+            padding: 0 8px 0 8px;
+            font-size: small;
+        }
+
+        td {
+            text-align: right;
+            padding: 0 8px 0 8px;
+        }
+
+        th,
+        td {
+            border: 1px #e1e1e1 solid;
+        }
+    </style>
+    <style>
+        sh-fn {
+            color: darkblue;
+        }
+
+        sh-str {
+            color: green;
+        }
+
+        sh-bang {
+            color: darkgoldenrod;
+        }
+
+        sh-arg {
+            color: darkorange;
+        }
+
+        py-kwd {
+            color: purple;
+        }
+
+        py-id {
+            color: indigo;
+        }
+
+        py-sym {
+            color: blue;
+        }
+
+        py-num {
+            color: darkorange;
+        }
+
+        py-fn {
+            color: darkgoldenrod;
+        }
+
+        py-str {
+            color: green;
+        }
+
+        py-com {
+            color: green;
+        }
+
+        diff-add {
+            background-color: rgba(50, 205, 50, 0.5);
+        }
+
+        diff-del {
+            background-color: rgba(255, 0, 0, 0.5);
+        }
+
+        ex-num {
+            color: blue;
+        }
+
+        ex-cell {
+            color: darkgoldenrod;
+        }
+
+        ex-cell[alt] {
+            color: darkgreen;
+        }
+
+        v-ref {
+            padding: 0 8px 0 8px;
+            box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="main-container">
+        <header>
+            <h1>A Simple Bigram Name Generator in Google Sheets</h1>
+        </header>
+        <nav>
+            <a style="padding: 8px;" href="..">go back</a>
+        </nav>
+        <br>
+        <main>
+            Why? Why not! This is partially based on the 2nd lecture in Andrej Karpathy's <a href="https://karpathy.ai/zero-to-hero.html">Zero to Hero</a> course, <a href="https://youtu.be/PaCmpygFfXo">The spelled-out intro to language modeling: building makemore</a>. I wanted to try re-creating it in Google Sheets! I'll be using the <a href="https://raw.githubusercontent.com/karpathy/makemore/refs/heads/master/names.txt">random names dataset</a> shown in the lecture to "train" the name generator.
+
+            <h2>Onegram, twogram, redgram, bluegram</h2>
+
+            <p>What is a bigram? A bigram is two adjacent letters in a string. Let's take the word "Dog" as an example. Here we can see two bigrams: "Do" and "og". Notice that 'Bi-' means two. Ostensibly, we can have n-grams of any size. Unigram, bigram, and trigram! Alternatively, we can give up with these fancy latin names and just call them by their number. four-gram, five-gram, six-gram!</p>
+
+            <p>The trigrams in the word "Hello" are:</p>
+            <ul>
+                <li>Hel</li>
+                <li>ell</li>
+                <li>llo</li>
+            </ul>
+
+            <p>A bigram language model is a language model that predicts the next character in a sequence using a bigram frequency table. Let's look at a simple frequency table with just 5 characters.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th></th>
+                        <th>a</th>
+                        <th>b</th>
+                        <th>c</th>
+                        <th>d</th>
+                        <th>e</th>
+                    </tr>
+                    <tr style="background-color: #d3e3fd;">
+                        <th>a</th>
+                        <td>15%</td>
+                        <td class="tablevar-1">0%</td>
+                        <td class="tablevar-2">70%</td>
+                        <td>10%</td>
+                        <td>5%</td>
+                    </tr>
+                    <tr>
+                        <th>b</th>
+                        <td>50%</td>
+                        <td>30%</td>
+                        <td>15%</td>
+                        <td>5%</td>
+                        <td>0%</td>
+                    </tr>
+                    <tr>
+                        <th>c</th>
+                        <td>25%</td>
+                        <td>25%</td>
+                        <td>5%</td>
+                        <td>35%</td>
+                        <td>10%</td>
+                    </tr>
+                    <tr>
+                        <th>d</th>
+                        <td>0%</td>
+                        <td>60%</td>
+                        <td>0%</td>
+                        <td>40%</td>
+                        <td>0%</td>
+                    </tr>
+                    <tr>
+                        <th>e</th>
+                        <td>10%</td>
+                        <td>40%</td>
+                        <td>20%</td>
+                        <td>20%</td>
+                        <td>10%</td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-1 {
+                    background-color: var(--tablevar-1);
+                }
+
+                main:has(.tablevar-1:hover) {
+                    --tablevar-1: yellow;
+                }
+
+                .tablevar-2 {
+                    background-color: var(--tablevar-2);
+                }
+
+                main:has(.tablevar-2:hover) {
+                    --tablevar-2: yellow;
+                }
+            </style>
+
+            <p>I highlighted the first row. As you can see, in this frequency table the probability of <v-ref class="tablevar-2">c</v-ref> coming after <v-ref style="background-color: #d3e3fd;">a</v-ref> is 70%, very high! While the probability of <v-ref class="tablevar-1">b</v-ref> coming after <v-ref style="background-color: #d3e3fd;">a</v-ref> is 0%, completely improbable. This means that the bigram 'ac' is very common in our dataset, but the bigram 'ab' never appears, not even once.</p>
+
+            <p class="note"><b>Note:</b> Each N-gram will have an N-dimensional frequency table. Bigram is a 2D table, trigram is 3D, and so on.</p>
+
+            </p>A bigram language model uses this frequency table to pick the next letter depending on the letter before it. Different frequency tables guide the model to different words.</p>
+
+            <h2>Dataset and Training a Model</h2>
+
+            <p>Let's create the frequency table. First, let's download and import our dataset. The given examples use IPython and can be ran in a Jupyter notebook.</p>
+
+            <pre><code>
+    <sh-bang>!</sh-bang><sh-fn>wget</sh-fn> <sh-str>https://raw.githubusercontent.com/karpathy/makemore/refs/heads/master/names.txt</sh-str>
+    <py-sym>words</py-sym> = <py-fn>open</py-fn>(<py-str>"names.txt"</py-str>, <py-str>"r"</py-str>).<py-fn>read</py-fn>().<py-fn>splitlines</py-fn>()
+            </code></pre>
+
+            <p>Next we need a way to convert characters into numbers. This numeric representation of a character is called a token. In large language models, tokens aren't just single characters, but entire word fragments. For simplicity, we'll just be using singular characters.</p>
+
+            <pre><code>
+    <py-sym>chars</py-sym> = <py-id>sorted</py-id>(<py-id>set</py-id>(<py-str>''</py-str>.<py-fn>join</py-fn>(<py-sym>words</py-sym>)))
+    <py-sym>vocab_size</py-sym> = <py-id>len</py-id>(<py-sym>chars</py-sym>)
+    <py-sym>chartoint</py-sym> = {<py-sym>ch</py-sym>:<py-sym>idx</py-sym> <py-kwd>for</py-kwd> <py-sym>idx</py-sym>,<py-sym>ch</py-sym> <py-kwd>in</py-kwd> <py-id>enumerate</py-id>(<py-sym>chars</py-sym>)}
+    
+    <py-id>print</py-id>(<py-sym>chartoint</py-sym>[<py-str>'.'</py-str>]) <py-com># -> 0</py-com>
+    <py-id>print</py-id>(<py-sym>chartoint</py-sym>[<py-str>'a'</py-str>]) <py-com># -> 1</py-com>
+    <py-id>print</py-id>(<py-sym>chartoint</py-sym>[<py-str>'z'</py-str>]) <py-com># -> 26</py-com>
+            </code></pre>
+
+            <p>Then we can count the frequencies of bigrams that appear in our dataset, putting the results into a tensor.</p>
+
+            <pre><code>
+    <py-kwd>import</py-kwd> <py-id>torch</py-id>
+    
+    <py-sym>frequencies</py-sym> = <py-id>torch</py-id>.<py-fn>zeros</py-fn>((<py-sym>vocab_size</py-sym>, <py-sym>vocab_size</py-sym>))
+
+    <py-kwd>for</py-kwd> <py-sym>word</py-sym> <py-kwd>in</py-kwd> <py-sym>words</py-sym>:
+        <py-kwd>for</py-kwd> <py-sym>a</py-sym>, <py-sym>b</py-sym> in <py-id>zip</py-id>(<py-sym>word</py-sym>, <py-sym>word</py-sym>[:<py-num>1</py-num>]):
+            <py-sym>ai</py-sym> = <py-sym>chartoint</py-sym>[<py-sym>a</py-sym>]
+            <py-sym>bi</py-sym> = <py-sym>chartoint</py-sym>[<py-sym>b</py-sym>]
+            <py-sym>frequencies</py-sym>[<py-sym>ai</py-sym>][<py-sym>bi</py-sym>] = <py-sym>frequencies</py-sym>[<py-sym>ai</py-sym>][<py-sym>bi</py-sym>] + <py-num>1</py-num>
+            </code></pre>
+
+            <p>There is a flaw in our code though. Currently, the frequency table doesn't recognize the start or end of words. That can be fixed by adding special tokens for start and end.</p>
+
+            <code><pre>
+    <py-kwd>for</py-kwd> <py-sym>word</py-sym> <py-kwd>in</py-kwd> <py-sym>words</py-sym>:
+<diff-add> +      <py-sym>word</py-sym> = [<py-str>'&lt;S&gt;'</py-str>] + <py-id>list</py-id>(<py-sym>word</py-sym>) + [<py-str>'&lt;E&gt;'</py-str>]</diff-add>
+        <py-kwd>for</py-kwd> <py-sym>a</py-sym>, <py-sym>b</py-sym> in <py-id>zip</py-id>(<py-sym>word</py-sym>, <py-sym>word</py-sym>[:<py-num>1</py-num>]):
+            <py-sym>ai</py-sym> = <py-sym>chartoint</py-sym>[<py-sym>a</py-sym>]
+            <py-sym>bi</py-sym> = <py-sym>chartoint</py-sym>[<py-sym>b</py-sym>]
+            <py-sym>frequencies</py-sym>[<py-sym>ai</py-sym>][<py-sym>bi</py-sym>] = <py-sym>frequencies</py-sym>[<py-sym>ai</py-sym>][<py-sym>bi</py-sym>] + <py-num>1</py-num>
+            </code></pre>
+
+            <p>Notice that <code><py-str>'??? &lt;S&gt;</py-str>'</code> is an impossible pairing because <code><py-str>'&lt;S&gt;'</py-str></code> can only appear at the start, and <code><py-str>'&lt;E&gt; ???'</py-str></code> is an impossible pairing because <code><py-str>'&lt;E&gt;'</py-str></code> can only appear at the end. This wastes space because our frequency table is encoding pairings that can never occur. We can save on space by merging both cases into a single token. Let's call this combined start and end token <code><py-str>'.'</py-str></code>, for no special reason other than it's simple and <code><py-str>'.'</py-str></code> never appears in our dataset.</p>
+
+            <pre><code>
+    <py-kwd>for</py-kwd> <py-sym>word</py-sym> <py-kwd>in</py-kwd> <py-sym>words</py-sym>:
+<diff-del> -      <py-sym>word</py-sym> = [<py-str>'&lt;S&gt;'</py-str>] + <py-id>list</py-id>(<py-sym>word</py-sym>) + [<py-str>'&lt;E&gt;'</py-str>]</diff-del>
+<diff-add> +      <py-sym>word</py-sym> = [<py-str>'.'</py-str>] + <py-id>list</py-id>(<py-sym>word</py-sym>) + [<py-str>'.'</py-str>]</diff-add>
+        <py-kwd>for</py-kwd> <py-sym>a</py-sym>, <py-sym>b</py-sym> in <py-id>zip</py-id>(<py-sym>word</py-sym>, <py-sym>word</py-sym>[:<py-num>1</py-num>]):
+            <py-sym>ai</py-sym> = <py-sym>chartoint</py-sym>[<py-sym>a</py-sym>]
+            <py-sym>bi</py-sym> = <py-sym>chartoint</py-sym>[<py-sym>b</py-sym>]
+            <py-sym>frequencies</py-sym>[<py-sym>ai</py-sym>][<py-sym>bi</py-sym>] = <py-sym>frequencies</py-sym>[<py-sym>ai</py-sym>][<py-sym>bi</py-sym>] + <py-num>1</py-num>
+            </code></pre>
+
+            <p>We'll have to update the above code to accomodate for this new character.</p>
+
+            <pre><code>
+<diff-del> -  <py-sym>chars</py-sym> = <py-id>sorted</py-id>(<py-id>set</py-id>(<py-str>''</py-str>.<py-fn>join</py-fn>(<py-sym>words</py-sym>)))</diff-del>
+<diff-add> +  <py-sym>chars</py-sym> = [<py-str>'.'</py-str>] + <py-id>sorted</py-id>(<py-id>set</py-id>(<py-str>''</py-str>.<py-fn>join</py-fn>(<py-sym>words</py-sym>)))</diff-add>
+            </code></pre>
+
+            <p>In analogy to deep learning language models with layers of neurons. You can imagine the frequency table as the weights of the model, and the process of calculating the frequencies as training the model. In fact, the two concepts are practically identical.</p>
+
+            <h2>=MATCH(search_key, range)</h2>
+
+            <p><code>MATCH</code> is a function in Google Sheets. It accepts three parameters. The third parameter is optional and we'll ignore it because we don't need it <sup><a href="https://support.microsoft.com/en-us/excel/get-started/match-function">see more</a></sup>. The two parameters we are using are the <code>search_key</code> (what to search for) and a range of numbers in ascending order (where to find it). <code>MATCH</code> returns the largest number that is less than or equal to the <code>search_key</code> by iterating through the elements in the given range and stopping as soon as an element is bigger than the <code>search_key</code>. It returns the 1-based index of the element it found.</p>
+
+            <p>Here are some examples.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td class="tablevar-3"><ex-num>2</ex-num></td>
+                        <td><ex-num>4</ex-num></td>
+                        <td class="tablevar-4"><ex-num>6</ex-num></td>
+                        <td><ex-num>8</ex-num></td>
+                        <td class="tablevar-5"><ex-num>10</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-3 {
+                    background-color: var(--tablevar-3);
+                }
+
+                main:has(.tablevar-3:hover) {
+                    --tablevar-3: yellow;
+                }
+
+                .tablevar-4 {
+                    background-color: var(--tablevar-4);
+                }
+
+                main:has(.tablevar-4:hover) {
+                    --tablevar-4: yellow;
+                }
+
+                .tablevar-5 {
+                    background-color: var(--tablevar-5);
+                }
+
+                main:has(.tablevar-5:hover) {
+                    --tablevar-5: yellow;
+                }
+
+                .tablevar-6 {
+                    background-color: var(--tablevar-6);
+                }
+
+                main:has(.tablevar-6:hover) {
+                    --tablevar-6: yellow;
+                }
+            </style>
+
+            <ul>
+                <li><code>MATCH(<ex-num>2</ex-num>, <ex-cell>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-3"><ex-cell>1</ex-cell></v-ref></li>
+                <li><code>MATCH(<ex-num>7</ex-num>, <ex-cell>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-4"><ex-cell>3</ex-cell></v-ref></li>
+                <li><code>MATCH(<ex-num>11</ex-num>, <ex-cell>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-5"><ex-cell>5</ex-cell></v-ref></li>
+                <li><code>MATCH(<ex-num>1</ex-num>, <ex-cell>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-6">#N/A</v-ref> (No number found that is less than or equal to 1)</li>
+            </ul>
+
+            <p class="note"><b>Note:</b> Google Sheets is a subset of Excel. In fact, you can import Excel files directly into Google Sheets. Google Sheets is more limited than Excel and doesn't support the entire breadth of features that Excel does.</p>
+
+            <p><code>RAND()</code> returns a random number from 0..1. We can use <code>MATCH(RAND(), ...)</code> to pick a random number from a list of weighted probabilities. But, because of the way <code>MATCH</code> samples from our list, the probabilities need to be sorted in ascending order then stored as a cumulative distribution, where each element in the list is the sum of all elements before it.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th colspan="6">Probabilities (Ascending Order)</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th><ex-cell>A</ex-cell></th>
+                        <th><ex-cell>B</ex-cell></th>
+                        <th><ex-cell>C</ex-cell></th>
+                        <th><ex-cell>D</ex-cell></th>
+                        <th><ex-cell>E</ex-cell></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td class="tablevar-13"><ex-num>0.2</ex-num></td>
+                        <td class="tablevar-14"><ex-num>0.2</ex-num></td>
+                        <td class="tablevar-15"><ex-num>0.2</ex-num></td>
+                        <td class="tablevar-16"><ex-num>0.2</ex-num></td>
+                        <td class="tablevar-17"><ex-num>0.2</ex-num></td>
+                    </tr>
+                </table>
+                <br>
+                <table>
+                    <tr>
+                        <th colspan="6">Cumulative Distribution</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th><ex-cell alt>A</ex-cell></th>
+                        <th><ex-cell alt>B</ex-cell></th>
+                        <th><ex-cell alt>C</ex-cell></th>
+                        <th><ex-cell alt>D</ex-cell></th>
+                        <th><ex-cell alt>E</ex-cell></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td class="tablevar-7 tablevar-12"><ex-num>0.0</ex-num></td>
+                        <td class="tablevar-8"><ex-num>0.2</ex-num></td>
+                        <td class="tablevar-9"><ex-num>0.4</ex-num></td>
+                        <td class="tablevar-10"><ex-num>0.6</ex-num></td>
+                        <td class="tablevar-11"><ex-num>0.8</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-7 {
+                    background-color: var(--tablevar-7);
+                }
+
+                main:has(.tablevar-7:hover) {
+                    --tablevar-7: yellow;
+
+                    .tablevar-row-7 {
+                        background-color: yellow;
+                    }
+                }
+
+                .tablevar-8 {
+                    background-color: var(--tablevar-8);
+                }
+
+                .tablevar-sel-8 {
+                    background-color: var(--tablevar-sel-8);
+                }
+
+                .tablevar-sel-8:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-8:hover) {
+                    --tablevar-8: yellow;
+                }
+
+                main:has(.tablevar-8:hover) {
+                    --tablevar-8: yellow;
+                    --tablevar-13: yellow;
+
+                    .tablevar-row-8 {
+                        background-color: yellow;
+                    }
+                }
+
+                .tablevar-9 {
+                    background-color: var(--tablevar-9);
+                }
+
+                main:has(.tablevar-9:hover) {
+                    --tablevar-9: yellow;
+                    --tablevar-13: yellow;
+                    --tablevar-14: yellow;
+
+                    .tablevar-row-9 {
+                        background-color: yellow;
+                    }
+                }
+
+                .tablevar-10 {
+                    background-color: var(--tablevar-10);
+                }
+
+                .tablevar-sel-10 {
+                    background-color: var(--tablevar-sel-10);
+                }
+
+                .tablevar-sel-10:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-10:hover) {
+                    --tablevar-10: yellow;
+                }
+
+                main:has(.tablevar-10:hover) {
+                    --tablevar-10: yellow;
+                    --tablevar-13: yellow;
+                    --tablevar-14: yellow;
+                    --tablevar-15: yellow;
+
+                    .tablevar-row-10 {
+                        background-color: yellow;
+                    }
+                }
+
+                .tablevar-11 {
+                    background-color: var(--tablevar-11);
+                }
+
+                main:has(.tablevar-11:hover) {
+                    --tablevar-11: yellow;
+                    --tablevar-13: yellow;
+                    --tablevar-14: yellow;
+                    --tablevar-15: yellow;
+                    --tablevar-16: yellow;
+
+                    .tablevar-row-11 {
+                        background-color: yellow;
+                    }
+                }
+
+                .tablevar-13 {
+                    background-color: var(--tablevar-13);
+                }
+
+                .tablevar-sel-13 {
+                    background-color: var(--tablevar-sel-13);
+                }
+
+                .tablevar-sel-13:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-13:hover) {
+                    --tablevar-13: yellow;
+                }
+
+                main:has(.tablevar-13:hover) {
+                    --tablevar-13: yellow;
+                    --tablevar-sel-13: yellow;
+
+                    --tablevar-8: yellow;
+                    --tablevar-9: yellow;
+                    --tablevar-10: yellow;
+                    --tablevar-11: yellow;
+                }
+
+                .tablevar-14 {
+                    background-color: var(--tablevar-14);
+                }
+
+                .tablevar-sel-14 {
+                    background-color: var(--tablevar-sel-14);
+                }
+
+                .tablevar-sel-14:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-14:hover) {
+                    --tablevar-14: yellow;
+                }
+
+                main:has(.tablevar-14:hover) {
+                    --tablevar-14: yellow;
+                    --tablevar-sel-14: yellow;
+
+                    --tablevar-9: yellow;
+                    --tablevar-10: yellow;
+                    --tablevar-11: yellow;
+                }
+
+                .tablevar-15 {
+                    background-color: var(--tablevar-15);
+                }
+
+                .tablevar-sel-15 {
+                    background-color: var(--tablevar-sel-15);
+                }
+
+                .tablevar-sel-15:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-15:hover) {
+                    --tablevar-15: yellow;
+                }
+
+                main:has(.tablevar-15:hover) {
+                    --tablevar-15: yellow;
+                    --tablevar-sel-15: yellow;
+
+                    --tablevar-10: yellow;
+                    --tablevar-11: yellow;
+                }
+
+                .tablevar-16 {
+                    background-color: var(--tablevar-16);
+                }
+
+                .tablevar-sel-16 {
+                    background-color: var(--tablevar-sel-16);
+                }
+
+                .tablevar-sel-16:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-16:hover) {
+                    --tablevar-16: yellow;
+                }
+
+                main:has(.tablevar-16:hover) {
+                    --tablevar-16: yellow;
+                    --tablevar-sel-16: yellow;
+
+                    --tablevar-11: yellow;
+                }
+
+                .tablevar-17:hover {
+                    background-color: yellow;
+                }
+            </style>
+
+            <ul>
+                <li><v-ref class="tablevar-7"><ex-cell alt>A</ex-cell></v-ref> = <v-ref class="tablevar-row-7 tablevar-7"><ex-num>0</ex-num></v-ref></li>
+                <li><v-ref class="tablevar-8"><ex-cell alt>B</ex-cell></v-ref> = <v-ref class="tablevar-row-8 tablevar-sel-13"><ex-cell>A</ex-cell></v-ref></li>
+                <li><v-ref class="tablevar-9"><ex-cell alt>C</ex-cell></v-ref> = <v-ref class="tablevar-row-9 tablevar-sel-13"><ex-cell>A</ex-cell></v-ref> + <v-ref class="tablevar-row-9 tablevar-sel-14"><ex-cell>B</ex-cell></v-ref></li>
+                <li><v-ref class="tablevar-10"><ex-cell alt>D</ex-cell></v-ref> = <v-ref class="tablevar-row-10 tablevar-sel-13"><ex-cell>A</ex-cell></v-ref> + <v-ref class="tablevar-row-10 tablevar-sel-14"><ex-cell>B</ex-cell></v-ref> + <v-ref class="tablevar-row-10 tablevar-sel-15"><ex-cell>C</ex-cell></v-ref></li>
+                <li><v-ref class="tablevar-11"><ex-cell alt>E</ex-cell></v-ref> = <v-ref class="tablevar-row-11 tablevar-sel-13"><ex-cell>A</ex-cell></v-ref> + <v-ref class="tablevar-row-11 tablevar-sel-14"><ex-cell>B</ex-cell></v-ref> + <v-ref class="tablevar-row-11 tablevar-sel-15"><ex-cell>C</ex-cell></v-ref> + <v-ref class="tablevar-row-11 tablevar-sel-16"><ex-cell>D</ex-cell></v-ref></li>
+            </ul>
+
+            <p>Running <code>MATCH</code> with the cumulative distribution table in Google Sheets I get these numbers. Your numbers may vary, but they'll all be sampled from the distribution above.</p>
+
+            <ul>
+                <li><code>MATCH(RAND(), <ex-cell alt>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-sel-10"><ex-cell>4</ex-cell></v-ref></li>
+                <li><code>MATCH(RAND(), <ex-cell alt>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-sel-8"><ex-cell>2</ex-cell></v-ref></li>
+                <li><code>MATCH(RAND(), <ex-cell alt>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-sel-8"><ex-cell>2</ex-cell></v-ref></li>
+            </ul>
+
+            <p class="note"><b>Tip:</b> In Google Sheets, you can press <kbd>DELETE</kbd> on an empty cell to re-roll the random numbers.</p>
+
+            <h2>Using a Cumulative Distribution</h2>
+
+            <p>Earlier we created a tensor of frequencies. Now let's convert those frequencies into a cumulative distribution. </p>
+
+            <p>First, we want to convert our tensor of frequencies into a tensor of probabilities. To do this, we need to divide each row by it's sum. I'm using example values for demonstration.</p>
+
+            <code><pre>
+<py-sym class="tablevar-sel-64">probs</py-sym> = <py-sym class="tablevar-sel-62">frequencies</py-sym> / <span class="tablevar-sel-63"><py-sym>frequencies</py-sym>.<py-fn>sum</py-fn>(<py-sym>dim</py-sym>=<py-num>1</py-num>, <py-sym>keepdim</py-sym>=<py-id>True</py-id>)</span></pre></code>
+
+            <style>
+                .tablevar-62 {
+                    background-color: var(--tablevar-62);
+                }
+
+                main:has(.tablevar-sel-62:hover) {
+                    --tablevar-62: #d3e3fd;
+                    --tablevar-sel-62: #d3e3fd;
+                }
+
+                .tablevar-sel-62 {
+                    background-color: var(--tablevar-sel-62);
+                }
+
+                main:has(.tablevar-62:hover) {
+                    --tablevar-sel-62: #d3e3fd;
+                }
+
+                .tablevar-63 {
+                    background-color: var(--tablevar-63);
+                }
+
+                main:has(.tablevar-sel-63:hover) {
+                    --tablevar-63: #d3e3fd;
+                    --tablevar-sel-63: #d3e3fd;
+                }
+
+                .tablevar-sel-63 {
+                    background-color: var(--tablevar-sel-63);
+                }
+
+                main:has(.tablevar-63:hover) {
+                    --tablevar-sel-63: #d3e3fd;
+                }
+
+                .tablevar-64 {
+                    background-color: var(--tablevar-64);
+                }
+
+                main:has(.tablevar-sel-64:hover) {
+                    --tablevar-64: #d3e3fd;
+                    --tablevar-sel-64: #d3e3fd;
+                }
+
+                .tablevar-sel-64 {
+                    background-color: var(--tablevar-sel-64);
+                }
+
+                main:has(.tablevar-64:hover) {
+                    --tablevar-sel-64: #d3e3fd;
+                }
+            </style>
+
+            <div class="table-container" style="display: flex;">
+                <table class="tablevar-62">
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-18"><ex-num>3</ex-num></td>
+                        <td class="tablevar-19"><ex-num>1</ex-num></td>
+                        <td class="tablevar-20"><ex-num>4</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-21"><ex-num>1</ex-num></td>
+                        <td class="tablevar-22"><ex-num>5</ex-num></td>
+                        <td class="tablevar-23"><ex-num>9</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-24"><ex-num>2</ex-num></td>
+                        <td class="tablevar-25"><ex-num>6</ex-num></td>
+                        <td class="tablevar-26"><ex-num>5</ex-num></td>
+                    </tr>
+                </table>
+                <span style="align-content: center; margin: 0 8px 0 8px;">/</span>
+                <table class="tablevar-63">
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A+B+C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td><v-ref class="tablevar-18"><ex-num>3</ex-num></v-ref>+<v-ref class="tablevar-19"><ex-num>1</ex-num></v-ref>+<v-ref class="tablevar-20"><ex-num>4</ex-num></v-ref></v-ref>=<v-ref class="tablevar-27"><ex-num>8</ex-num></v-ref></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td><v-ref class="tablevar-21"><ex-num>1</ex-num></v-ref>+<v-ref class="tablevar-22"><ex-num>5</ex-num></v-ref>+<v-ref class="tablevar-23"><ex-num>9</ex-num></v-ref>=<v-ref class="tablevar-28"><ex-num>15</ex-num></v-ref></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td><v-ref class="tablevar-24"><ex-num>2</ex-num></v-ref>+<v-ref class="tablevar-25"><ex-num>6</ex-num></v-ref>+<v-ref class="tablevar-26"><ex-num>5</ex-num></v-ref>=<v-ref class="tablevar-29"><ex-num>13</ex-num></v-ref></td>
+                    </tr>
+                </table>
+                <span style="align-content: center; margin: 0 8px 0 8px;">=</span>
+                <table class="tablevar-64">
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-39"><v-ref class="tablevar-18"><ex-num>3</ex-num></v-ref> / <v-ref class="tablevar-27"><ex-num>8</ex-num></v-ref></td>
+                        <td class="tablevar-40"><v-ref class="tablevar-19"><ex-num>1</ex-num></v-ref> / <v-ref class="tablevar-27"><ex-num>8</ex-num></v-ref></td>
+                        <td class="tablevar-41"><v-ref class="tablevar-20"><ex-num>4</ex-num></v-ref> / <v-ref class="tablevar-27"><ex-num>8</ex-num></v-ref></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-42"><v-ref class="tablevar-21"><ex-num>1</ex-num></v-ref> / <v-ref class="tablevar-28"><ex-num>15</ex-num></v-ref></td>
+                        <td class="tablevar-43"><v-ref class="tablevar-22"><ex-num>5</ex-num></v-ref> / <v-ref class="tablevar-28"><ex-num>15</ex-num></v-ref></td>
+                        <td class="tablevar-44"><v-ref class="tablevar-23"><ex-num>9</ex-num></v-ref> / <v-ref class="tablevar-28"><ex-num>15</ex-num></v-ref></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-45"><v-ref class="tablevar-24"><ex-num>2</ex-num></v-ref> / <v-ref class="tablevar-29"><ex-num>13</ex-num></v-ref></td>
+                        <td class="tablevar-46"><v-ref class="tablevar-25"><ex-num>6</ex-num></v-ref> / <v-ref class="tablevar-29"><ex-num>13</ex-num></v-ref></td>
+                        <td class="tablevar-47"><v-ref class="tablevar-26"><ex-num>5</ex-num></v-ref> / <v-ref class="tablevar-29"><ex-num>13</ex-num></v-ref></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-18 {
+                    background-color: var(--tablevar-18);
+                }
+
+                main:has(.tablevar-18:hover) {
+                    --tablevar-18: yellow;
+                }
+
+                .tablevar-19 {
+                    background-color: var(--tablevar-19);
+                }
+
+                main:has(.tablevar-19:hover) {
+                    --tablevar-19: yellow;
+                }
+
+                .tablevar-20 {
+                    background-color: var(--tablevar-20);
+                }
+
+                main:has(.tablevar-20:hover) {
+                    --tablevar-20: yellow;
+                }
+
+                .tablevar-21 {
+                    background-color: var(--tablevar-21);
+                }
+
+                main:has(.tablevar-21:hover) {
+                    --tablevar-21: yellow;
+                }
+
+                .tablevar-22 {
+                    background-color: var(--tablevar-22);
+                }
+
+                main:has(.tablevar-22:hover) {
+                    --tablevar-22: yellow;
+                }
+
+                .tablevar-23 {
+                    background-color: var(--tablevar-23);
+                }
+
+                main:has(.tablevar-23:hover) {
+                    --tablevar-23: yellow;
+                }
+
+                .tablevar-24 {
+                    background-color: var(--tablevar-24);
+                }
+
+                main:has(.tablevar-24:hover) {
+                    --tablevar-24: yellow;
+                }
+
+                .tablevar-25 {
+                    background-color: var(--tablevar-25);
+                }
+
+                main:has(.tablevar-25:hover) {
+                    --tablevar-25: yellow;
+                }
+
+                .tablevar-26 {
+                    background-color: var(--tablevar-26);
+                }
+
+                main:has(.tablevar-26:hover) {
+                    --tablevar-26: yellow;
+                }
+
+                .tablevar-27 {
+                    background-color: var(--tablevar-27);
+                }
+
+                main:has(.tablevar-27:hover) {
+                    --tablevar-27: yellow;
+                }
+
+                .tablevar-28 {
+                    background-color: var(--tablevar-28);
+                }
+
+                main:has(.tablevar-28:hover) {
+                    --tablevar-28: yellow;
+                }
+
+                .tablevar-29 {
+                    background-color: var(--tablevar-29);
+                }
+
+                main:has(.tablevar-29:hover) {
+                    --tablevar-29: yellow;
+                }
+            </style>
+
+            <p>Which gives us these probability values.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th colspan="4"><py-sym>probs</py-sym></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-sel-39"><ex-num>0.375</ex-num></td>
+                        <td class="tablevar-sel-40"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-sel-41"><ex-num>0.5</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-sel-42"><ex-num>0.066</ex-num></td>
+                        <td class="tablevar-sel-43"><ex-num>0.333</ex-num></td>
+                        <td class="tablevar-sel-44"><ex-num>0.6</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-sel-45"><ex-num>0.153</ex-num></td>
+                        <td class="tablevar-sel-46"><ex-num>0.461</ex-num></td>
+                        <td class="tablevar-sel-47"><ex-num>0.384</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-39 {
+                    background-color: var(--tablevar-39);
+                }
+
+                .tablevar-sel-39 {
+                    background-color: var(--tablevar-39);
+                }
+
+                main:has(.tablevar-sel-39:hover) {
+                    --tablevar-39: yellow;
+                }
+
+                .tablevar-40 {
+                    background-color: var(--tablevar-40);
+                }
+
+                .tablevar-sel-40 {
+                    background-color: var(--tablevar-40);
+                }
+
+                main:has(.tablevar-sel-40:hover) {
+                    --tablevar-40: yellow;
+                }
+
+                .tablevar-41 {
+                    background-color: var(--tablevar-41);
+                }
+
+                .tablevar-sel-41 {
+                    background-color: var(--tablevar-41);
+                }
+
+                main:has(.tablevar-sel-41:hover) {
+                    --tablevar-41: yellow;
+                }
+
+                .tablevar-42 {
+                    background-color: var(--tablevar-42);
+                }
+
+                .tablevar-sel-42 {
+                    background-color: var(--tablevar-42);
+                }
+
+                main:has(.tablevar-sel-42:hover) {
+                    --tablevar-42: yellow;
+                }
+
+                .tablevar-43 {
+                    background-color: var(--tablevar-43);
+                }
+
+                .tablevar-sel-43 {
+                    background-color: var(--tablevar-43);
+                }
+
+                main:has(.tablevar-sel-43:hover) {
+                    --tablevar-43: yellow;
+                }
+
+                .tablevar-44 {
+                    background-color: var(--tablevar-44);
+                }
+
+                .tablevar-sel-44 {
+                    background-color: var(--tablevar-44);
+                }
+
+                main:has(.tablevar-sel-44:hover) {
+                    --tablevar-44: yellow;
+                }
+
+                .tablevar-45 {
+                    background-color: var(--tablevar-45);
+                }
+
+                .tablevar-sel-45 {
+                    background-color: var(--tablevar-45);
+                }
+
+                main:has(.tablevar-sel-45:hover) {
+                    --tablevar-45: yellow;
+                }
+
+                .tablevar-46 {
+                    background-color: var(--tablevar-46);
+                }
+
+                .tablevar-sel-46 {
+                    background-color: var(--tablevar-46);
+                }
+
+                main:has(.tablevar-sel-46:hover) {
+                    --tablevar-46: yellow;
+                }
+
+                .tablevar-47 {
+                    background-color: var(--tablevar-47);
+                }
+
+                .tablevar-sel-47 {
+                    background-color: var(--tablevar-47);
+                }
+
+                main:has(.tablevar-sel-47:hover) {
+                    --tablevar-47: yellow;
+                }
+            </style>
+
+            <p><code><py-sym>dim</py-sym>=<py-num>1</py-num></code> tells pytorch to sum the rows.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr style="background-color: red;">
+                        <td>.</td>
+                        <td>.</td>
+                        <td>.</td>
+                    </tr>
+                    <tr style="background-color: blue;">
+                        <td>.</td>
+                        <td>.</td>
+                        <td>.</td>
+                    </tr>
+                    <tr style="background-color: green;">
+                        <td>.</td>
+                        <td>.</td>
+                        <td>.</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>As opposed to <code><py-sym>dim</py-sym>=<py-num>0</py-num></code> which sums the columns.</p>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <td style="background-color: red;">.</td>
+                        <td style="background-color: blue;">.</td>
+                        <td style="background-color: green;">.</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: red;">.</td>
+                        <td style="background-color: blue;">.</td>
+                        <td style="background-color: green;">.</td>
+                    </tr>
+                    <tr>
+                        <td style="background-color: red;">.</td>
+                        <td style="background-color: blue;">.</td>
+                        <td style="background-color: green;">.</td>
+                    </tr>
+                </table>
+            </div>
+
+            <p><code><py-fn>sum</py-fn></code> usually returns a tensor of dimension <code>(<py-sym>N</py-sym>,)</code> where <code><py-sym>N</py-sym></code> is the number of rows, but with <code><py-sym>keepdim</py-sym>=<py-id>True</py-id></code> it returns tensor of dimension <code>(<py-sym>N</py-sym>,<py-num>1</py-num>)</code> retaining the same dimension size as the input. This prevents <a href="https://www.geeksforgeeks.org/deep-learning/understanding-broadcasting-in-pytorch/">pytorch broadcasting</a> from dividing things the wrong way.</p>
+
+            <p>Now recall that <code>MATCH</code> needs our table to be in ascending order. We'll have to sort it.</p>
+
+            <div class="table-container" style="display: flex;">
+                <span style="align-content: center;"><py-id>torch</py-id>.<py-fn>sort</py-fn>(</span>
+                <table>
+                    <tr>
+                        <th colspan="4"><py-sym>probs</py-sym></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-30"><ex-num>0.375</ex-num></td>
+                        <td class="tablevar-31"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-32"><ex-num>0.5</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-33"><ex-num>0.066</ex-num></td>
+                        <td class="tablevar-34"><ex-num>0.333</ex-num></td>
+                        <td class="tablevar-35"><ex-num>0.6</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-36"><ex-num>0.153</ex-num></td>
+                        <td class="tablevar-37"><ex-num>0.461</ex-num></td>
+                        <td class="tablevar-38"><ex-num>0.384</ex-num></td>
+                    </tr>
+                </table>
+                <span style="align-content: center;">)</span>
+            </div>
+            <style>
+                .tablevar-30 {
+                    background-color: var(--tablevar-30);
+                }
+
+                main:has(.tablevar-30:hover) {
+                    --tablevar-30: yellow;
+                }
+
+                .tablevar-31 {
+                    background-color: var(--tablevar-31);
+                }
+
+                main:has(.tablevar-31:hover) {
+                    --tablevar-31: yellow;
+                }
+
+                .tablevar-32 {
+                    background-color: var(--tablevar-32);
+                }
+
+                main:has(.tablevar-32:hover) {
+                    --tablevar-32: yellow;
+                }
+
+                .tablevar-33 {
+                    background-color: var(--tablevar-33);
+                }
+
+                main:has(.tablevar-33:hover) {
+                    --tablevar-33: yellow;
+                }
+
+                .tablevar-34 {
+                    background-color: var(--tablevar-34);
+                }
+
+                main:has(.tablevar-34:hover) {
+                    --tablevar-34: yellow;
+                }
+
+                .tablevar-35 {
+                    background-color: var(--tablevar-35);
+                }
+
+                main:has(.tablevar-35:hover) {
+                    --tablevar-35: yellow;
+                }
+
+                .tablevar-36 {
+                    background-color: var(--tablevar-36);
+                }
+
+                main:has(.tablevar-36:hover) {
+                    --tablevar-36: yellow;
+                }
+
+                .tablevar-37 {
+                    background-color: var(--tablevar-37);
+                }
+
+                main:has(.tablevar-37:hover) {
+                    --tablevar-37: yellow;
+                }
+
+                .tablevar-38 {
+                    background-color: var(--tablevar-38);
+                }
+
+                main:has(.tablevar-38:hover) {
+                    --tablevar-38: yellow;
+                }
+            </style>
+
+            <p><code><py-id>torch</py-id>.<py-fn>sort</py-fn></code> returns the sorted tensor and a table of indices containing the old index of every sorted element. Keep a mental note of the indices table as it will be useful later.</p>
+
+            <pre><code><py-sym>probs</py-sym>, <py-sym>indices</py-sym> = <py-id>torch</py-id>.<py-fn>sort</py-fn>(<py-sym>probs</py-sym>)</code></pre>
+            <div class="table-container" style="display: flex;">
+                <table>
+                    <tr>
+                        <th colspan="4"><py-sym>probs</py-sym> (sorted)</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>B</th>
+                        <th>A</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-31"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-30"><ex-num>0.375</ex-num></td>
+                        <td class="tablevar-32"><ex-num>0.5</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-33"><ex-num>0.066</ex-num></td>
+                        <td class="tablevar-34"><ex-num>0.333</ex-num></td>
+                        <td class="tablevar-35"><ex-num>0.6</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>C</th>
+                        <th>B</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-36"><ex-num>0.153</ex-num></td>
+                        <td class="tablevar-38"><ex-num>0.384</ex-num></td>
+                        <td class="tablevar-37"><ex-num>0.461</ex-num></td>
+                    </tr>
+                </table>
+                <span style="align-content: center; margin: 0 8px 0 8px;"></span>
+                <table>
+                    <tr>
+                        <th colspan="4"><py-sym>indices</py-sym></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>B</th>
+                        <th>A</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-31"><ex-num>1</ex-num></td>
+                        <td class="tablevar-30"><ex-num>0</ex-num></td>
+                        <td class="tablevar-32"><ex-num>2</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-33"><ex-num>0</ex-num></td>
+                        <td class="tablevar-34"><ex-num>1</ex-num></td>
+                        <td class="tablevar-35"><ex-num>2</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>C</th>
+                        <th>B</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-36"><ex-num>0</ex-num></td>
+                        <td class="tablevar-38"><ex-num>2</ex-num></td>
+                        <td class="tablevar-37"><ex-num>1</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>Now we have a sorted probability distribution, we can turn it into a cumulative distribution. Naively, we would do something like this.</p>
+
+            <pre><code>    <py-sym>cumulprobs</py-sym> = <py-id>torch</py-id>.<py-fn>zeros_like</py-fn>(<py-sym>probs</py-sym>)
+
+    <py-kwd>for</py-kwd> <py-sym>y</py-sym> <py-kwd>in</py-kwd> <py-id>range</py-id>(<py-num>3</py-num>):
+        <py-kwd>for</py-kwd> <py-sym>x</py-sym> <py-kwd>in</py-kwd> <py-id>range</py-id>(<py-num>3</py-num>):
+            <py-sym>cumulprobs</py-sym>[<py-sym>y</py-sym>][<py-sym>x</py-sym>] = <py-sym>probs</py-sym>[<py-sym>y</py-sym>][:<py-sym>x</py-sym>].<py-fn>sum</py-fn>()</code></pre>
+
+            <p>But, there's a little mathematical trick with tensors that can do this for us in a more performant and succinct way.</p>
+
+            <p><py-id>torch</py-id>.<py-fn>tril</py-fn> is a function that masks the elements in a tensor to form a triangular shape.</p>
+
+            <pre><code><py-id>torch</py-id>.<py-fn>tril</py-fn>(<py-id>torch</py-id>.<py-fn>ones</py-fn>((<py-num>5</py-num>,<py-num>5</py-num>)))</code></pre>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">2</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">3</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">4</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">5</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>We can change the <py-sym>diagonal</py-sym> parameter to shift when the triangle begins.</p>
+
+            <div class="table-container" style="display: flex;">
+                <table>
+                    <tr>
+                        <th colspan="6"><py-sym>diagonal</py-sym>=<py-num>-1</py-num></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">2</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">3</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">4</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">5</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                </table>
+                <span style="margin: 0 8px 0 8px;"></span>
+                <table>
+                    <tr>
+                        <th colspan="6"><py-sym>diagonal</py-sym>=<py-num>1</py-num></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">2</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">3</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">4</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">5</th>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                        <td><ex-num>1</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>And if we multiply a trilled tensor with another tensor, it does about what you'd expect.</p>
+
+            <pre><code><py-sym>x</py-sym> = <py-id>torch</py-id>.<py-fn>arange</py-fn>(<py-num>1</py-num>,<py-num>6</py-num>).<py-fn>float</py-fn>()</code></pre>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td><ex-num>1.0</ex-num></td>
+                        <td><ex-num>2.0</ex-num></td>
+                        <td><ex-num>3.0</ex-num></td>
+                        <td><ex-num>4.0</ex-num></td>
+                        <td><ex-num>5.0</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+
+            <pre><code><py-id>torch</py-id>.<py-fn>tril</py-fn>(<py-id>torch</py-id>.<py-fn>ones</py-fn>((<py-num>5</py-num>,<py-num>5</py-num>)),<py-sym>diagonal</py-sym>=<py-num>-1</py-num>) * <py-sym>x</py-sym></code></pre>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                        <th>D</th>
+                        <th>E</th>
+                    </tr>
+                    <tr class="tablevar-48">
+                        <th style="background-color: white;" class="rowcount">1</th>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr class="tablevar-49">
+                        <th style="background-color: white;" class="rowcount">2</th>
+                        <td><ex-num>1.0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr class="tablevar-50">
+                        <th style="background-color: white;" class="rowcount">3</th>
+                        <td><ex-num>1.0</ex-num></td>
+                        <td><ex-num>2.0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr class="tablevar-51">
+                        <th style="background-color: white;" class="rowcount">4</th>
+                        <td><ex-num>1.0</ex-num></td>
+                        <td><ex-num>2.0</ex-num></td>
+                        <td><ex-num>3.0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr class="tablevar-52">
+                        <th style="background-color: white;" class="rowcount">5</th>
+                        <td><ex-num>1.0</ex-num></td>
+                        <td><ex-num>2.0</ex-num></td>
+                        <td><ex-num>3.0</ex-num></td>
+                        <td><ex-num>4.0</ex-num></td>
+                        <td style="background-color: #e1e1e1;"><ex-num>0</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>There's a neat thing that happens when you use matrix multiplication instead of a regular multiply. Matrix multiplications sum the rows and columns. With a bit of fiddling with dimensions using <py-fn>squeeze</py-fn> and <py-fn>unsqueeze</py-fn>, we can mask out the elements we want and sum them. The symbol for matrix multiply in pytorch is <code>@</code></p>
+
+            <pre><code><py-sym>mask</py-sym> = <py-id>torch</py-id>.<py-fn>tril</py-fn>(<py-id>torch</py-id>.<py-fn>ones</py-fn>((<py-num>5</py-num>,<py-num>5</py-num>)),<py-sym>diagonal</py-sym>=<py-num>-1</py-num>)
+(<py-sym>mask</py-sym> @ <py-sym>x</py-sym>.<py-fn>unsqueeze</py-fn>(<py-num>-1</py-num>)).<py-fn>squeeze</py-fn>(<py-num>-1</py-num>)</code></pre>
+
+            <div class="table-container" style="display: flex;">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A+B+C+D+E</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <td class="tablevar-48"><ex-num>0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">2</th>
+                        <td class="tablevar-49"><ex-num>1.0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">3</th>
+                        <td class="tablevar-50"><ex-num>1.0</ex-num>+<ex-num>2.0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">4</th>
+                        <td class="tablevar-51"><ex-num>1.0</ex-num>+<ex-num>2.0</ex-num>+<ex-num>3.0</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">5</th>
+                        <td class="tablevar-52"><ex-num>1.0</ex-num>+<ex-num>2.0</ex-num>+<ex-num>3.0</ex-num>+<ex-num>4.0</ex-num></td>
+                    </tr>
+                </table>
+                <span style="align-content: center; margin: 0 8px 0 8px;">=</span>
+                <table style="align-self: center;">
+                    <tr>
+                        <th></th>
+                        <th>1</th>
+                        <th>2</th>
+                        <th>3</th>
+                        <th>4</th>
+                        <th>5</th>
+                    </tr>
+                    <tr>
+                        <th>A+B+C+D+E</th>
+                        <td class="tablevar-48"><ex-num>0</ex-num></td>
+                        <td class="tablevar-49"><ex-num>1.0</ex-num></td>
+                        <td class="tablevar-50"><ex-num>3.0</ex-num></td>
+                        <td class="tablevar-51"><ex-num>6.0</ex-num></td>
+                        <td class="tablevar-52"><ex-num>10.0</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-48 {
+                    background-color: var(--tablevar-48);
+                }
+
+                main:has(.tablevar-48:hover) {
+                    --tablevar-48: yellow;
+                }
+
+                .tablevar-49 {
+                    background-color: var(--tablevar-49);
+                }
+
+                main:has(.tablevar-49:hover) {
+                    --tablevar-49: yellow;
+                }
+
+                .tablevar-50 {
+                    background-color: var(--tablevar-50);
+                }
+
+                main:has(.tablevar-50:hover) {
+                    --tablevar-50: yellow;
+                }
+
+                .tablevar-51 {
+                    background-color: var(--tablevar-51);
+                }
+
+                main:has(.tablevar-51:hover) {
+                    --tablevar-51: yellow;
+                }
+
+                .tablevar-52 {
+                    background-color: var(--tablevar-52);
+                }
+
+                main:has(.tablevar-52:hover) {
+                    --tablevar-52: yellow;
+                }
+            </style>
+
+            <p>Now we can finally bring back the sorted probability distribution from earlier.</p>
+
+            <div class="table-container" style="display: flex;">
+                <table>
+                    <tr>
+                        <th colspan="4"><py-sym>probs</py-sym></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>B</th>
+                        <th>A</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-53"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-54"><ex-num>0.375</ex-num></td>
+                        <td class="tablevar-55"><ex-num>0.5</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-56"><ex-num>0.066</ex-num></td>
+                        <td class="tablevar-57"><ex-num>0.333</ex-num></td>
+                        <td class="tablevar-58"><ex-num>0.6</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>C</th>
+                        <th>B</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-59"><ex-num>0.153</ex-num></td>
+                        <td class="tablevar-60"><ex-num>0.384</ex-num></td>
+                        <td class="tablevar-61"><ex-num>0.461</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+
+            <p>And turn it into a cumulative distribution.</p>
+
+            <pre><code>(<py-sym>mask</py-sym> @ <py-sym>probs</py-sym>.<py-fn>unsqueeze</py-fn>(<py-num>-1</py-num>)).<py-fn>squeeze</py-fn>(<py-num>-1</py-num>)</code></pre>
+
+            <div class="table-container" style="display: flex;">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>B</th>
+                        <th>A</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">A</th>
+                        <td class="tablevar-sel-53"><ex-num>0</ex-num></td>
+                        <td class="tablevar-sel-54"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-sel-55"><ex-num>0.5</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>B</th>
+                        <th>C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">B</th>
+                        <td class="tablevar-sel-56"><ex-num>0</ex-num></td>
+                        <td class="tablevar-sel-57"><ex-num>0.066</ex-num></td>
+                        <td class="tablevar-sel-58"><ex-num>0.399</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th>A</th>
+                        <th>C</th>
+                        <th>B</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">C</th>
+                        <td class="tablevar-sel-59"><ex-num>0</ex-num></td>
+                        <td class="tablevar-sel-60"><ex-num>0.153</ex-num></td>
+                        <td class="tablevar-sel-61"><ex-num>0.537</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .tablevar-53 {
+                    background-color: var(--tablevar-53)
+                }
+
+                .tablevar-sel-53:hover {
+                    background-color: yellow;
+                }
+
+                .tablevar-54 {
+                    background-color: var(--tablevar-54)
+                }
+
+                .tablevar-sel-54:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-54:hover) {
+                    --tablevar-53: yellow;
+                }
+
+                .tablevar-55 {
+                    background-color: var(--tablevar-55)
+                }
+
+                .tablevar-sel-55:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-55:hover) {
+                    --tablevar-53: yellow;
+                    --tablevar-54: yellow;
+                }
+
+                .tablevar-56 {
+                    background-color: var(--tablevar-56)
+                }
+
+                .tablevar-sel-56:hover {
+                    background-color: yellow;
+                }
+
+                .tablevar-57 {
+                    background-color: var(--tablevar-57)
+                }
+
+                .tablevar-sel-57:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-57:hover) {
+                    --tablevar-56: yellow;
+                }
+
+                .tablevar-58 {
+                    background-color: var(--tablevar-58)
+                }
+
+                .tablevar-sel-58:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-58:hover) {
+                    --tablevar-56: yellow;
+                    --tablevar-57: yellow;
+                }
+
+                .tablevar-59 {
+                    background-color: var(--tablevar-59)
+                }
+
+                .tablevar-sel-59:hover {
+                    background-color: yellow;
+                }
+
+                .tablevar-60 {
+                    background-color: var(--tablevar-60)
+                }
+
+                .tablevar-sel-60:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-60:hover) {
+                    --tablevar-59: yellow;
+                }
+
+                .tablevar-61 {
+                    background-color: var(--tablevar-61)
+                }
+
+                .tablevar-sel-61:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-61:hover) {
+                    --tablevar-59: yellow;
+                    --tablevar-60: yellow;
+                }
+            </style>
+
+            <p>And that's how we turn frequencies into a cumulative distribution using pytorch! Additionally, there's the <py-id>torch</py-id>.<py-fn>cumsum</py-fn> function which automagically does everything for us, but isn't it more fun if we write it ourselves?</p>
+
+            <h2>In Google Sheets</h2>
+
+            <p>So now we can construct a cumulative distribution from the frequencies of bigrams in a dataset. We can take that cumulative distribution tensor, convert it to CSV, and import it into Google Sheets. Now, let's try sampling from it with <code>MATCH</code>.</p>
+
+            <p>Here is a color-coded example spreadsheet of a cumulative distribution table and it's corresponding indices table (remember that from earlier?).</p>
+
+            <div class="table-container" style="display: flex;">
+                <table>
+                    <tr>
+                        <th class="rowcount"></th>
+                        <th><b>R</b></th>
+                        <th><b>S</b></th>
+                        <th><b>T</b></th>
+                        <th><b>U</b></th>
+                        <th><b>V</b></th>
+                        <th><b>W</b></th>
+                        <th><b>X</b></th>
+                        <th><b>Y</b></th>
+                        <th><b>Z</b></th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">1</th>
+                        <th class="highlight-column"></th>
+                        <th class="highlight-row1">B</th>
+                        <th class="highlight-row1">A</th>
+                        <th class="highlight-row1">C</th>
+                        <th></th>
+                        <th class="highlight-column"></th>
+                        <th class="tablevar-67 highlight-row1">B</th>
+                        <th class="highlight-row1">A</th>
+                        <th class="highlight-row1">C</th>
+                    </tr>
+                    <tr>
+                        <th style="background-color: white;" class="rowcount">2</th>
+                        <th class="tablevar-66 highlight-column">A</th>
+                        <td class="tablevar-68 tablevar-66 tablevar-65 highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="tablevar-66 tablevar-65 highlight-row2"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-66 tablevar-65 highlight-row2"><ex-num>0.5</ex-num></td>
+                        <th class="tablevar-66"></th>
+                        <th class="tablevar-66 highlight-column">A</th>
+                        <td class="tablevar-69 tablevar-67 tablevar-66 highlight-row2"><ex-num>1</ex-num></td>
+                        <td class="tablevar-66 highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="tablevar-66 highlight-row2"><ex-num>2</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">3</th>
+                        <th class="highlight-column"></th>
+                        <th class="highlight-row1">A</th>
+                        <th class="highlight-row1">B</th>
+                        <th class="highlight-row1">C</th>
+                        <th></th>
+                        <th class="highlight-column"></th>
+                        <th class="tablevar-67 highlight-row1">A</th>
+                        <th class="highlight-row1">B</th>
+                        <th class="highlight-row1">C</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">4</th>
+                        <th class="highlight-column">B</th>
+                        <td class="highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.066</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.399</ex-num></td>
+                        <th></th>
+                        <th class="highlight-column">B</th>
+                        <td class="tablevar-67 highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="highlight-row2"><ex-num>1</ex-num></td>
+                        <td class="highlight-row2"><ex-num>2</ex-num></td>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">5</th>
+                        <th class="highlight-column"></th>
+                        <th class="highlight-row1">A</th>
+                        <th class="highlight-row1">C</th>
+                        <th class="highlight-row1">B</th>
+                        <th></th>
+                        <th class="highlight-column"></th>
+                        <th class="tablevar-67 highlight-row1">A</th>
+                        <th class="highlight-row1">C</th>
+                        <th class="highlight-row1">B</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">6</th>
+                        <th class="highlight-column">C</th>
+                        <td class="highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.153</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.537</ex-num></td>
+                        <th></th>
+                        <th class="highlight-column">C</th>
+                        <td class="tablevar-67 highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="highlight-row2"><ex-num>2</ex-num></td>
+                        <td class="highlight-row2"><ex-num>1</ex-num></td>
+                    </tr>
+                </table>
+            </div>
+            <style>
+                .highlight-column {
+                    background-color: burlywood;
+                }
+
+                .highlight-row1 {
+                    background-color: blanchedalmond;
+                }
+
+                .highlight-row2 {
+                    background-color: white;
+                }
+
+                .tablevar-sel-65:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-65:hover) {
+                    .tablevar-65 {
+                        background-color: yellow !important;
+                    }
+                }
+
+                .tablevar-sel-66:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-66:hover) {
+                    .tablevar-66 {
+                        background-color: yellow !important;
+                    }
+                }
+
+                .tablevar-sel-67:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-67:hover) {
+                    .tablevar-67 {
+                        background-color: yellow !important;
+                    }
+                }
+
+                .tablevar-sel-68:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-68:hover) {
+                    .tablevar-68 {
+                        background-color: yellow !important;
+                    }
+                }
+
+                .tablevar-sel-69:hover {
+                    background-color: yellow;
+                }
+
+                main:has(.tablevar-sel-69:hover) {
+                    .tablevar-69 {
+                        background-color: yellow !important;
+                    }
+                }
+            </style>
+
+            <p>Let's try asking the table what letter comes after A. First we'll pick a random letter from the A row. Google Sheets doesn't have variable assignments but for demonstration let's pretend that it does.</p>
+
+            <code><v-ref class="tablevar-sel-68"><py-sym>idx</py-sym></v-ref> = MATCH(RAND(), <v-ref class="tablevar-sel-65"><ex-cell>S2:U2</ex-cell></code></v-ref>)
+
+            <p>This will give us the index of the value that <code>MATCH</code> found in the cumulative distribution table. For demonstration, let's say that <code><py-sym>idx</py-sym>==<py-num>1</py-num></code>, that means that B comes after A because B is the first element in the range we provided to <code>MATCH</code>. To get the token number from the index we can check the corresponding cell in the indices lookup table.</p>
+
+            <code><v-ref class="tablevar-sel-69"><py-sym>token</py-sym></v-ref> = INDIRECT(ADDRESS(<v-ref class="tablevar-sel-66"><ex-cell>2</ex-cell></v-ref>, <v-ref class="tablevar-sel-67"><py-sym>idx</py-sym>+<ex-num>5</ex-num></v-ref>))</code>
+
+            <p><code>ADDRESS</code> gets the cell name (e.g <ex-cell>A1</ex-cell> or <ex-cell>E3</ex-cell>) from the row and column number. <code>INDIRECT</code> takes that cell name and gets its value. Now here is the function in it's entirety.</p>
+
+            <code>INDIRECT(ADDRESS(<ex-cell>2</ex-cell>, MATCH(RAND(), <ex-cell>S2:U2</ex-cell>)+<ex-num>5</ex-num>))</code>
+
+            <p>Woohoo! We managed to predicate one character using our bigram table in Google Sheets! Now we need to chain predictions together. Each next letter is dependent on the letter before it.</p>
+
+            <p>We hardcoded the function to select from row <ex-cell>2</ex-cell>, the A row. Let's generalize it. First, we'll need to be able to dynamically construct the range selector <ex-cell>S2:U2</ex-cell> with any row, not just the second one. We can use INDIRECT alongside a new function CONCATENATE, which concatenates two strings together.</p>
+
+            <code>INDIRECT(CONCATENATE(<py-str>"S"</py-str>, <py-sym>row</py-sym>, <py-str>":U"</py-str>, <py-sym>row</py-sym>))</code>
+
+            <p>Then we can plug it into our function from earlier.</p>
+
+            <code>INDIRECT(ADDRESS(<py-sym>row</py-sym>, MATCH(RAND(), INDIRECT(CONCATENATE(<py-str>"S"</py-str>, <py-sym>row</py-sym>, <py-str>":U"</py-str>, <py-sym>row</py-sym>))+<ex-num>5</ex-num>))</code>
+
+            <p>Then instead of providing the function with a row number, we want to provide it with a token. The row number is just <py-sym>token</py-sym>*<ex-num>2</ex-num> because if you look above, the cells that contain the probabilities for the next token are on every other row.</p>
+
+            <code>INDIRECT(ADDRESS(<py-sym>tok</py-sym>*<ex-num>2</ex-num>, MATCH(RAND(), INDIRECT(CONCATENATE(<py-str>"S"</py-str>, <py-sym>tok</py-sym>*<ex-num>2</ex-num>, <py-str>":U"</py-str>, <py-sym>tok</py-sym>*<ex-num>2</ex-num>))+<ex-num>5</ex-num>))</code>
+
+            <p>Then just copy-paste this formula a bunch of times where each cell refers to the one before it. And there you have it, inference! You might need a lookup table from tokens to characters but at this point it should be easy to imagine how you might do that.</p>
+
+            <p><a href="Bigram Name Generator.xlsx">Click here to download the Microsoft Excel project file for the name generator.</a></p>
+
+            <h2>Closing Notes</h2>
+
+            <p>This one took a lot longer to write than I'd hoped. I thought I'd be able to bash this one out in a day but I kept on finding opportunities to divulge more fun facts and I couldn't stop myself! This post definitely could have been one paragraph of text, but that's no fun isn't it. Oh, and, don't look at the CSS, it's horrible.</p>
+
+            <p class="note">Made with love, html, and css. If you have any questions or want to talk, my emails are open. <a href="mailto:johnnycambodia@gmail.com">johnnycambodia@gmail.com</a></p>
+        </main>
+    </div>
+</body>
+
+</html>
