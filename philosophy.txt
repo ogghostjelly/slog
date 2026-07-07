@@ -7,9 +7,7 @@ No abstractions. Copy and paste.
 No generalisations. Localised changes only. Nothing affects everything.
 No static. Everything changes all the time.
 No good websites. Living is ugly and broken. Let it live.
-No unknowns. If you don't understand it then you can't change it.
-No universal formats. Every format in a soup together.
-No control. Code changes code that changes code that
+No unknown. It's about control, understand it, change it.
 
 This too will change.
 
