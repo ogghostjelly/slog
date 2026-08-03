@@ -4,10 +4,10 @@ How to grow a website from hydrothermal soup vents.
 
 No DRY. get WET. Don't don't repeat yourself.
 No abstractions. Copy and paste.
-No generalisations. Localised changes only. Nothing affects everything.
+No generalisations. Nothing changes everything.
 No static. Everything changes all the time.
-No good websites. Living is ugly and broken. Let it live.
-No unknown. It's about control, understand it, change it.
+No good websites. Let it live ugly.
+No unknowns. Understand it, change it.
 
 This too will change.
 
