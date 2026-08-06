@@ -15,6 +15,8 @@
             color: #1f1f1f;
             font-family: 'Google Sans', 'Google Sans', Verdana, Geneva, Tahoma, sans-serif;
             line-height: 1.5em;
+            max-width: 1080px;
+            margin: 16px auto;
         }
 
         @font-face {
@@ -36,7 +38,7 @@
         .main-container {
             background-color: #ffffff;
             margin: 16px;
-            padding: 16px;
+            padding: 24px;
             border-radius: 1rem;
             box-shadow: 0px 3px 1px -2px rgba(0, 0, 0, 0.2), 0px 2px 2px 0px rgba(0, 0, 0, 0.14), 0px 1px 5px 0px rgba(0, 0, 0, 0.12);
         }
@@ -47,6 +49,11 @@
             background-color: #d3e3fd;
             color: #0842a0;
             transition: background-color 75ms;
+
+            &[warning] {
+                background-color: #f9dedc;
+                color: #410e0b;
+            }
         }
 
         a {
@@ -188,6 +195,10 @@
         <main>
             Why? Why not! This is partially based on the 2nd lecture in Andrej Karpathy's <a href="https://karpathy.ai/zero-to-hero.html">Zero to Hero</a> course, <a href="https://youtu.be/PaCmpygFfXo">The spelled-out intro to language modeling: building makemore</a>. I wanted to try re-creating it in Google Sheets! I'll be using the <a href="https://raw.githubusercontent.com/karpathy/makemore/refs/heads/master/names.txt">random names dataset</a> shown in the lecture to "train" the name generator.
 
+            <!-- NOTES FOR FUTURE ME
+                 Hey! You should write a section about actually doing the training in Google Sheets, as opposed to doing it in Python and then importing it into Google Sheets.
+            -->
+
             <h2>Onegram, twogram, redgram, bluegram</h2>
 
             <p>What is a bigram? A bigram is two adjacent letters in a string. Let's take the word "Dog" as an example. Here we can see two bigrams: "Do" and "og". Notice that 'Bi-' means two. Ostensibly, we can have n-grams of any size. Unigram, bigram, and trigram! Alternatively, we can give up with these fancy latin names and just call them by their number. four-gram, five-gram, six-gram!</p>
@@ -279,7 +290,7 @@
 
             <h2>Dataset and Training a Model</h2>
 
-            <p>Let's create the frequency table. First, let's download and import our dataset. The given examples use IPython and can be ran in a Jupyter notebook.</p>
+            <p>Let's create the frequency table. First, let's download and import our dataset. The given examples use IPython and can be run in a Jupyter notebook.</p>
 
             <pre><code>
     <sh-bang>!</sh-bang><sh-fn>wget</sh-fn> <sh-str>https://raw.githubusercontent.com/karpathy/makemore/refs/heads/master/names.txt</sh-str>
@@ -346,7 +357,7 @@
 
             <h2>=MATCH(search_key, range)</h2>
 
-            <p><code>MATCH</code> is a function in Google Sheets. It accepts three parameters. The third parameter is optional and we'll ignore it because we don't need it <sup><a href="https://support.microsoft.com/en-us/excel/get-started/match-function">see more</a></sup>. The two parameters we are using are the <code>search_key</code> (what to search for) and a range of numbers in ascending order (where to find it). <code>MATCH</code> returns the largest number that is less than or equal to the <code>search_key</code> by iterating through the elements in the given range and stopping as soon as an element is bigger than the <code>search_key</code>. It returns the 1-based index of the element it found.</p>
+            <p>Now we have a table of frequencies, we want to look-up the most likely next token given the previous token in Google Sheets. For this, we'll be using <code>MATCH</code>. <code>MATCH</code> is a function that accepts three parameters. The third parameter is optional and we'll ignore it because we don't need it <sup><a href="https://support.microsoft.com/en-us/excel/get-started/match-function">see more</a></sup>. The two parameters we are using are the <code>search_key</code> (what to search for) and a range of numbers in ascending order (where to find it). <code>MATCH</code> returns the largest number that is less than or equal to the <code>search_key</code> by iterating through the elements in the given range and stopping as soon as an element is bigger than the <code>search_key</code>. It returns the 1-based index of the element it found.</p>
 
             <p>Here are some examples.</p>
 
@@ -411,9 +422,11 @@
                 <li><code>MATCH(<ex-num>1</ex-num>, <ex-cell>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-6">#N/A</v-ref> (No number found that is less than or equal to 1)</li>
             </ul>
 
-            <p class="note"><b>Note:</b> Google Sheets is a subset of Excel. In fact, you can import Excel files directly into Google Sheets. Google Sheets is more limited than Excel and doesn't support the entire breadth of features that Excel does.</p>
+            <p class="note"><b>Note:</b> Google Sheets is a subset of Excel and doesn't support Excels full breadth of features, but you can still import Excel files into Google Sheets.</p>
 
-            <p><code>RAND()</code> returns a random number from 0..1. We can use <code>MATCH(RAND(), ...)</code> to pick a random number from a list of weighted probabilities. But, because of the way <code>MATCH</code> samples from our list, the probabilities need to be sorted in ascending order then stored as a cumulative distribution, where each element in the list is the sum of all elements before it.</p>
+            <p><code>RAND()</code> returns a random number from 0..1. We can use <code>MATCH(RAND(), ...)</code> to pick a random element from our table. But, because of the way <code>MATCH</code> samples from our list, the frequencies need to be converted into probabilities, sorted in ascending order, then stored as a cumulative sum. A cumulative sum is a list where each element is the sum of the elements before it.</p>
+
+            <p>Here is an example probability table where each element is just as likely to occur, and it's accompanying cumulative sum table.</p>
 
             <div class="table-container">
                 <table>
@@ -440,7 +453,7 @@
                 <br>
                 <table>
                     <tr>
-                        <th colspan="6">Cumulative Distribution</th>
+                        <th colspan="6">Cumulative Sum</th>
                     </tr>
                     <tr>
                         <th class="rowcount"></th>
@@ -666,7 +679,7 @@
                 <li><v-ref class="tablevar-11"><ex-cell alt>E</ex-cell></v-ref> = <v-ref class="tablevar-row-11 tablevar-sel-13"><ex-cell>A</ex-cell></v-ref> + <v-ref class="tablevar-row-11 tablevar-sel-14"><ex-cell>B</ex-cell></v-ref> + <v-ref class="tablevar-row-11 tablevar-sel-15"><ex-cell>C</ex-cell></v-ref> + <v-ref class="tablevar-row-11 tablevar-sel-16"><ex-cell>D</ex-cell></v-ref></li>
             </ul>
 
-            <p>Running <code>MATCH</code> with the cumulative distribution table in Google Sheets I get these numbers. Your numbers may vary, but they'll all be sampled from the distribution above.</p>
+            <p>Running <code>MATCH</code> with the cumulative sum table in Google Sheets I get these numbers. Your numbers may vary, but they'll all be sampled from the distribution above.</p>
 
             <ul>
                 <li><code>MATCH(RAND(), <ex-cell alt>A1:E1</ex-cell>)</code> = <v-ref class="tablevar-sel-10"><ex-cell>4</ex-cell></v-ref></li>
@@ -676,11 +689,11 @@
 
             <p class="note"><b>Tip:</b> In Google Sheets, you can press <kbd>DELETE</kbd> on an empty cell to re-roll the random numbers.</p>
 
-            <h2>Using a Cumulative Distribution</h2>
+            <h2>Converting to a Cumulative Sum</h2>
 
-            <p>Earlier we created a tensor of frequencies. Now let's convert those frequencies into a cumulative distribution. </p>
+            <p>Earlier we created a tensor of frequencies. Now let's convert those frequencies into a cumulative sum. </p>
 
-            <p>First, we want to convert our tensor of frequencies into a tensor of probabilities. To do this, we need to divide each row by it's sum. I'm using example values for demonstration.</p>
+            <p>First, we want to convert our tensor of frequencies into a tensor of probabilities. To do this, we need to divide each element in a row by the row's sum. I'm using example values for demonstration.</p>
 
             <code><pre>
 <py-sym class="tablevar-sel-64">probs</py-sym> = <py-sym class="tablevar-sel-62">frequencies</py-sym> / <span class="tablevar-sel-63"><py-sym>frequencies</py-sym>.<py-fn>sum</py-fn>(<py-sym>dim</py-sym>=<py-num>1</py-num>, <py-sym>keepdim</py-sym>=<py-id>True</py-id>)</span></pre></code>
@@ -1099,7 +1112,7 @@
 
             <p><code><py-fn>sum</py-fn></code> usually returns a tensor of dimension <code>(<py-sym>N</py-sym>,)</code> where <code><py-sym>N</py-sym></code> is the number of rows, but with <code><py-sym>keepdim</py-sym>=<py-id>True</py-id></code> it returns tensor of dimension <code>(<py-sym>N</py-sym>,<py-num>1</py-num>)</code> retaining the same dimension size as the input. This prevents <a href="https://www.geeksforgeeks.org/deep-learning/understanding-broadcasting-in-pytorch/">pytorch broadcasting</a> from dividing things the wrong way.</p>
 
-            <p>Now recall that <code>MATCH</code> needs our table to be in ascending order. We'll have to sort it.</p>
+            <p>Now recall that <code>MATCH</code> needs each row in our table to be in ascending order. We'll have to sort it.</p>
 
             <div class="table-container" style="display: flex;">
                 <span style="align-content: center;"><py-id>torch</py-id>.<py-fn>sort</py-fn>(</span>
@@ -1208,7 +1221,7 @@
                 }
             </style>
 
-            <p><code><py-id>torch</py-id>.<py-fn>sort</py-fn></code> returns the sorted tensor and a table of indices containing the old index of every sorted element. Keep a mental note of the indices table as it will be useful later.</p>
+            <p><code><py-id>torch</py-id>.<py-fn>sort</py-fn></code> returns the sorted tensor and a table of indices containing the old index of every sorted element. Keep a mental note of the indices table, as it will be useful later when we need to look-up the original position (aka the token number) of an element in the probability table.</p>
 
             <pre><code><py-sym>probs</py-sym>, <py-sym>indices</py-sym> = <py-id>torch</py-id>.<py-fn>sort</py-fn>(<py-sym>probs</py-sym>)</code></pre>
             <div class="table-container" style="display: flex;">
@@ -1297,7 +1310,7 @@
                 </table>
             </div>
 
-            <p>Now we have a sorted probability distribution, we can turn it into a cumulative distribution. Naively, we would do something like this.</p>
+            <p>Now we have a sorted probability distribution, we can turn it into a cumulative sum. Naively, we would do something like this.</p>
 
             <pre><code>    <py-sym>cumulprobs</py-sym> = <py-id>torch</py-id>.<py-fn>zeros_like</py-fn>(<py-sym>probs</py-sym>)
 
@@ -1307,7 +1320,9 @@
 
             <p>But, there's a little mathematical trick with tensors that can do this for us in a more performant and succinct way.</p>
 
-            <p><py-id>torch</py-id>.<py-fn>tril</py-fn> is a function that masks the elements in a tensor to form a triangular shape.</p>
+            <p></p>
+
+            <p>What we're essentially doing is selecting all the elements before the current element and then summing them. We can utilize a function in pytorch to mask out the elements we want to sum. <py-id>torch</py-id>.<py-fn>tril</py-fn> is a function that masks the elements in a tensor to form a triangular shape.</p>
 
             <pre><code><py-id>torch</py-id>.<py-fn>tril</py-fn>(<py-id>torch</py-id>.<py-fn>ones</py-fn>((<py-num>5</py-num>,<py-num>5</py-num>)))</code></pre>
 
@@ -1556,7 +1571,7 @@
                 </table>
             </div>
 
-            <p>There's a neat thing that happens when you use matrix multiplication instead of a regular multiply. Matrix multiplications sum the rows and columns. With a bit of fiddling with dimensions using <py-fn>squeeze</py-fn> and <py-fn>unsqueeze</py-fn>, we can mask out the elements we want and sum them. The symbol for matrix multiply in pytorch is <code>@</code></p>
+            <p>Now from here, we could naively think to sum each row to get our cumulative sum, but there's a neat thing that happens when you use matrix multiplication instead of a regular multiply. Matrix multiplication sums the rows and columns automatically. With a bit of fiddling with dimensions using <py-fn>squeeze</py-fn> and <py-fn>unsqueeze</py-fn>, we can mask out the elements we want and sum them in a single operation. The symbol for matrix multiply in pytorch is <code>@</code></p>
 
             <pre><code><py-sym>mask</py-sym> = <py-id>torch</py-id>.<py-fn>tril</py-fn>(<py-id>torch</py-id>.<py-fn>ones</py-fn>((<py-num>5</py-num>,<py-num>5</py-num>)),<py-sym>diagonal</py-sym>=<py-num>-1</py-num>)
 (<py-sym>mask</py-sym> @ <py-sym>x</py-sym>.<py-fn>unsqueeze</py-fn>(<py-num>-1</py-num>)).<py-fn>squeeze</py-fn>(<py-num>-1</py-num>)</code></pre>
@@ -1696,7 +1711,7 @@
                 </table>
             </div>
 
-            <p>And turn it into a cumulative distribution.</p>
+            <p>And turn it into a cumulative sum.</p>
 
             <pre><code>(<py-sym>mask</py-sym> @ <py-sym>probs</py-sym>.<py-fn>unsqueeze</py-fn>(<py-num>-1</py-num>)).<py-fn>squeeze</py-fn>(<py-num>-1</py-num>)</code></pre>
 
@@ -1841,96 +1856,82 @@
                 }
             </style>
 
-            <p>And that's how we turn frequencies into a cumulative distribution using pytorch! Additionally, there's the <py-id>torch</py-id>.<py-fn>cumsum</py-fn> function which automagically does everything for us, but isn't it more fun if we write it ourselves?</p>
+            <p>And that's how we turn frequencies into a cumulative sum using pytorch! Additionally, there's the <py-id>torch</py-id>.<py-fn>cumsum</py-fn> function which automagically does everything for us, but it's fun (and useful) to learn about fancy tensor tricks.</p>
 
             <h2>In Google Sheets</h2>
 
-            <p>So now we can construct a cumulative distribution from the frequencies of bigrams in a dataset. We can take that cumulative distribution tensor, convert it to CSV, and import it into Google Sheets. Now, let's try sampling from it with <code>MATCH</code>.</p>
+            <p>So now we can construct a cumulative sum from the frequencies of bigrams in a dataset. We can take that cumulative sum tensor, convert it to CSV, and import it into Google Sheets. Now, let's try sampling from it in Google Sheets.</p>
 
-            <p>Here is a color-coded example spreadsheet of a cumulative distribution table and it's corresponding indices table (remember that from earlier?).</p>
+            <p>Here is our cumulative sum table and it's corresponding indices table (remember that? the one we got from <py-id>torch</py-id>.<py-fn>sort</py-fn>).</p>
 
             <div class="table-container" style="display: flex;">
                 <table>
                     <tr>
+                        <th style="background-color: white;" class="rowcount"></th>
+                        <th>&nbsp;</th>
+                    </tr>
+                    <tr>
                         <th class="rowcount"></th>
-                        <th><b>R</b></th>
-                        <th><b>S</b></th>
-                        <th><b>T</b></th>
+                        <th>&nbsp;</th>
+                    </tr>
+                    <tr>
+                        <th style="background-color: white;" class="rowcount">1</th>
+                        <th class="highlight-column">A</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">2</th>
+                        <th class="highlight-column">B</th>
+                    </tr>
+                    <tr>
+                        <th class="rowcount">3</th>
+                        <th class="highlight-column">C</th>
+                    </tr>
+                </table>
+                <table>
+                    <tr>
+                        <th colspan="3">probs</th>
+                    </tr>
+                    <tr>
                         <th><b>U</b></th>
                         <th><b>V</b></th>
                         <th><b>W</b></th>
+                    </tr>
+                    <tr>
+                        <td class="tablevar-68 tablevar-66 tablevar-65 highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="tablevar-66 tablevar-65 highlight-row2"><ex-num>0.125</ex-num></td>
+                        <td class="tablevar-66 tablevar-65 highlight-row2"><ex-num>0.5</ex-num></td>
+                    </tr>
+                    <tr>
+                        <td class="highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.066</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.399</ex-num></td>
+                    </tr>
+                    <tr>
+                        <td class="highlight-row2"><ex-num>0</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.153</ex-num></td>
+                        <td class="highlight-row2"><ex-num>0.537</ex-num></td>
+                    </tr>
+                </table>
+                <table>
+                    <tr>
+                        <th colspan="3">indices</th>
+                    </tr>
+                    <tr>
                         <th><b>X</b></th>
                         <th><b>Y</b></th>
                         <th><b>Z</b></th>
                     </tr>
                     <tr>
-                        <th class="rowcount">1</th>
-                        <th class="highlight-column"></th>
-                        <th class="highlight-row1">B</th>
-                        <th class="highlight-row1">A</th>
-                        <th class="highlight-row1">C</th>
-                        <th></th>
-                        <th class="highlight-column"></th>
-                        <th class="tablevar-67 highlight-row1">B</th>
-                        <th class="highlight-row1">A</th>
-                        <th class="highlight-row1">C</th>
-                    </tr>
-                    <tr>
-                        <th style="background-color: white;" class="rowcount">2</th>
-                        <th class="tablevar-66 highlight-column">A</th>
-                        <td class="tablevar-68 tablevar-66 tablevar-65 highlight-row2"><ex-num>0</ex-num></td>
-                        <td class="tablevar-66 tablevar-65 highlight-row2"><ex-num>0.125</ex-num></td>
-                        <td class="tablevar-66 tablevar-65 highlight-row2"><ex-num>0.5</ex-num></td>
-                        <th class="tablevar-66"></th>
-                        <th class="tablevar-66 highlight-column">A</th>
                         <td class="tablevar-69 tablevar-67 tablevar-66 highlight-row2"><ex-num>1</ex-num></td>
                         <td class="tablevar-66 highlight-row2"><ex-num>0</ex-num></td>
                         <td class="tablevar-66 highlight-row2"><ex-num>2</ex-num></td>
                     </tr>
                     <tr>
-                        <th class="rowcount">3</th>
-                        <th class="highlight-column"></th>
-                        <th class="highlight-row1">A</th>
-                        <th class="highlight-row1">B</th>
-                        <th class="highlight-row1">C</th>
-                        <th></th>
-                        <th class="highlight-column"></th>
-                        <th class="tablevar-67 highlight-row1">A</th>
-                        <th class="highlight-row1">B</th>
-                        <th class="highlight-row1">C</th>
-                    </tr>
-                    <tr>
-                        <th class="rowcount">4</th>
-                        <th class="highlight-column">B</th>
-                        <td class="highlight-row2"><ex-num>0</ex-num></td>
-                        <td class="highlight-row2"><ex-num>0.066</ex-num></td>
-                        <td class="highlight-row2"><ex-num>0.399</ex-num></td>
-                        <th></th>
-                        <th class="highlight-column">B</th>
                         <td class="tablevar-67 highlight-row2"><ex-num>0</ex-num></td>
                         <td class="highlight-row2"><ex-num>1</ex-num></td>
                         <td class="highlight-row2"><ex-num>2</ex-num></td>
                     </tr>
                     <tr>
-                        <th class="rowcount">5</th>
-                        <th class="highlight-column"></th>
-                        <th class="highlight-row1">A</th>
-                        <th class="highlight-row1">C</th>
-                        <th class="highlight-row1">B</th>
-                        <th></th>
-                        <th class="highlight-column"></th>
-                        <th class="tablevar-67 highlight-row1">A</th>
-                        <th class="highlight-row1">C</th>
-                        <th class="highlight-row1">B</th>
-                    </tr>
-                    <tr>
-                        <th class="rowcount">6</th>
-                        <th class="highlight-column">C</th>
-                        <td class="highlight-row2"><ex-num>0</ex-num></td>
-                        <td class="highlight-row2"><ex-num>0.153</ex-num></td>
-                        <td class="highlight-row2"><ex-num>0.537</ex-num></td>
-                        <th></th>
-                        <th class="highlight-column">C</th>
                         <td class="tablevar-67 highlight-row2"><ex-num>0</ex-num></td>
                         <td class="highlight-row2"><ex-num>2</ex-num></td>
                         <td class="highlight-row2"><ex-num>1</ex-num></td>
@@ -1960,32 +1961,32 @@
                     }
                 }
 
-                .tablevar-sel-66:hover {
-                    background-color: yellow;
-                }
-
                 main:has(.tablevar-sel-66:hover) {
                     .tablevar-66 {
                         background-color: yellow !important;
                     }
-                }
 
-                .tablevar-sel-67:hover {
-                    background-color: yellow;
+                    .tablevar-sel-66 {
+                        background-color: yellow !important;
+                    }
                 }
 
                 main:has(.tablevar-sel-67:hover) {
                     .tablevar-67 {
                         background-color: yellow !important;
                     }
-                }
 
-                .tablevar-sel-68:hover {
-                    background-color: yellow;
+                    .tablevar-sel-67 {
+                        background-color: yellow !important;
+                    }
                 }
 
                 main:has(.tablevar-sel-68:hover) {
                     .tablevar-68 {
+                        background-color: yellow !important;
+                    }
+
+                    .tablevar-sel-68 {
                         background-color: yellow !important;
                     }
                 }
@@ -2003,37 +2004,36 @@
 
             <p>Let's try asking the table what letter comes after A. First we'll pick a random letter from the A row. Google Sheets doesn't have variable assignments but for demonstration let's pretend that it does.</p>
 
-            <code><v-ref class="tablevar-sel-68"><py-sym>idx</py-sym></v-ref> = MATCH(RAND(), <v-ref class="tablevar-sel-65"><ex-cell>S2:U2</ex-cell></code></v-ref>)
+            <code><v-ref class="tablevar-sel-68"><py-sym>idx</py-sym></v-ref> = MATCH(RAND(), <v-ref class="tablevar-sel-65"><ex-cell>U1:W1</ex-cell></code></v-ref>)
 
-            <p>This will give us the index of the value that <code>MATCH</code> found in the cumulative distribution table. For demonstration, let's say that <code><py-sym>idx</py-sym>==<py-num>1</py-num></code>, that means that B comes after A because B is the first element in the range we provided to <code>MATCH</code>. To get the token number from the index we can check the corresponding cell in the indices lookup table.</p>
+            <p>To get the token number from the index, we need to lookup the corresponding cell in the indices table. Since we are selecting from the A row, we want the <v-ref class="tablevar-sel-66">first row</v-ref>. Since the indices table is <ex-num>4</ex-num> columns to the right of the probs table, we want the <v-ref class="tablevar-sel-67"><ex-num>4</ex-num>th column to the right of <py-sym>idx</py-sym></v-ref>.</p>
 
-            <code><v-ref class="tablevar-sel-69"><py-sym>token</py-sym></v-ref> = INDIRECT(ADDRESS(<v-ref class="tablevar-sel-66"><ex-cell>2</ex-cell></v-ref>, <v-ref class="tablevar-sel-67"><py-sym>idx</py-sym>+<ex-num>5</ex-num></v-ref>))</code>
+            <code><v-ref class="tablevar-sel-69"><py-sym>token</py-sym></v-ref> = INDIRECT(ADDRESS(<v-ref class="tablevar-sel-66"><ex-cell>1</ex-cell></v-ref>, <v-ref class="tablevar-sel-67"><py-sym>idx</py-sym>+<ex-num>4</ex-num></v-ref>))</code>
 
-            <p><code>ADDRESS</code> gets the cell name (e.g <ex-cell>A1</ex-cell> or <ex-cell>E3</ex-cell>) from the row and column number. <code>INDIRECT</code> takes that cell name and gets its value. Now here is the function in it's entirety.</p>
+            <p><code>ADDRESS</code> gets the cell name as a string given the row and column number. <code>INDIRECT</code> takes that string and evalutes it to get its value. Now let's substitute our <code><py-sym>idx</py-sym></code> variable to get the function in it's entirety.</p>
 
-            <code>INDIRECT(ADDRESS(<ex-cell>2</ex-cell>, MATCH(RAND(), <ex-cell>S2:U2</ex-cell>)+<ex-num>5</ex-num>))</code>
+            <code>INDIRECT(ADDRESS(<ex-cell>1</ex-cell>, MATCH(RAND(), <ex-cell>U1:W1</ex-cell>)+<ex-num>4</ex-num>))</code>
 
-            <p>Woohoo! We managed to predicate one character using our bigram table in Google Sheets! Now we need to chain predictions together. Each next letter is dependent on the letter before it.</p>
+            <p>Woohoo! We managed to predict one character using our bigram table in Google Sheets! Now we need to chain predictions together. The next letter is dependent on the letter before it.</p>
 
-            <p>We hardcoded the function to select from row <ex-cell>2</ex-cell>, the A row. Let's generalize it. First, we'll need to be able to dynamically construct the range selector <ex-cell>S2:U2</ex-cell> with any row, not just the second one. We can use INDIRECT alongside a new function CONCATENATE, which concatenates two strings together.</p>
+            <p>We hardcoded the function to always select from row <ex-cell>1</ex-cell>, the A row. Let's generalize it. First, we'll need to be able to dynamically construct the range selector <ex-cell>U1:W1</ex-cell> with any row, not just the second one. We can use INDIRECT alongside a new function CONCATENATE, which concatenates two strings together.</p>
 
-            <code>INDIRECT(CONCATENATE(<py-str>"S"</py-str>, <py-sym>row</py-sym>, <py-str>":U"</py-str>, <py-sym>row</py-sym>))</code>
+            <code>INDIRECT(CONCATENATE(<py-str>"U"</py-str>, <py-sym>row</py-sym>, <py-str>":W"</py-str>, <py-sym>row</py-sym>))</code>
 
-            <p>Then we can plug it into our function from earlier.</p>
+            <p>Then we can update our function from earlier to allow it to select from any row.</p>
 
-            <code>INDIRECT(ADDRESS(<py-sym>row</py-sym>, MATCH(RAND(), INDIRECT(CONCATENATE(<py-str>"S"</py-str>, <py-sym>row</py-sym>, <py-str>":U"</py-str>, <py-sym>row</py-sym>))+<ex-num>5</ex-num>))</code>
+            <code>INDIRECT(ADDRESS(<py-sym>row</py-sym>, MATCH(RAND(), INDIRECT(CONCATENATE(<py-str>"U"</py-str>, <py-sym>row</py-sym>, <py-str>":W"</py-str>, <py-sym>row</py-sym>))+<ex-num>4</ex-num>)))</code>
 
-            <p>Then instead of providing the function with a row number, we want to provide it with a token. The row number is just <py-sym>token</py-sym>*<ex-num>2</ex-num> because if you look above, the cells that contain the probabilities for the next token are on every other row.</p>
+            <p>Then just copy-paste this formula a bunch of times where <code><py-sym>row</py-sym></code> refers to the cell before it. And there you have it, inference!</p>
 
-            <code>INDIRECT(ADDRESS(<py-sym>tok</py-sym>*<ex-num>2</ex-num>, MATCH(RAND(), INDIRECT(CONCATENATE(<py-str>"S"</py-str>, <py-sym>tok</py-sym>*<ex-num>2</ex-num>, <py-str>":U"</py-str>, <py-sym>tok</py-sym>*<ex-num>2</ex-num>))+<ex-num>5</ex-num>))</code>
 
-            <p>Then just copy-paste this formula a bunch of times where each cell refers to the one before it. And there you have it, inference! You might need a lookup table from tokens to characters but at this point it should be easy to imagine how you might do that.</p>
+            <p>The code explained so far only gets the token number, but you might want to convert that number into a letter with yet another look-up table. But, I'll leave that as an exercise for the reader.</p>
 
             <p><a href="Bigram Name Generator.xlsx">Click here to download the Microsoft Excel project file for the name generator.</a></p>
 
             <h2>Closing Notes</h2>
 
-            <p>This one took a lot longer to write than I'd hoped. I thought I'd be able to bash this one out in a day but I kept on finding opportunities to divulge more fun facts and I couldn't stop myself! This post definitely could have been one paragraph of text, but that's no fun isn't it. Oh, and, don't look at the CSS, it's horrible.</p>
+            <p>This one took a lot longer to write than I'd hoped. I thought I'd be able to bash this one out in a day but I kept on finding opportunities to divulge more fun facts and I couldn't stop myself! (And because I kept procrastinating writing it) This post definitely could have been one paragraph of text, but that's no fun isn't it. Oh, and, don't look at the CSS, it's horrible. I tried to make it look like a Google site.</p>
 
             <p class="note">Made with love, html, and css. If you have any questions or want to talk, my emails are open. <a href="mailto:johnnycambodia@gmail.com">johnnycambodia@gmail.com</a></p>
         </main>
