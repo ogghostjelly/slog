@@ -4,5 +4,13 @@ cd $(dirname "$0")
 
 echo -e "\n\n$(cat thoughts.txt)" > thoughts.txt
 hx thoughts.txt
-./thoughts.template.sh
-git commit -m "thought" thoughts.txt thoughts.preview.html thoughts.html
+
+echo "Commit? [Y/N]"
+read ans
+if [ "${ans,,}" = y ]; then
+  ./thoughts.template.sh
+  git commit -m "thought" thoughts.txt thoughts.preview.html thoughts.html
+  echo "Succies!"
+else
+  echo "Cancelled."
+fi
