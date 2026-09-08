@@ -1,3 +1,5 @@
+IIFE is a poor mans let
+
 I should be able to rename .jpg to .png and have the OS convert it.
 
 You can create tuple structs like `Some { 0: value }`. Oh my god.
