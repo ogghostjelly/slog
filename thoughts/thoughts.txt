@@ -1,3 +1,5 @@
+my favourite type of blog post is "I learnt a new thing and wanted to share it with you"
+
 IIFE is a poor mans let
 
 I should be able to rename .jpg to .png and have the OS convert it.
