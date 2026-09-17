@@ -1,3 +1,7 @@
+Comparing high-level languages to low-level languages is apples to oranges.
+That's why comparing Rust to C doesn't make much sense.
+**unsafe** Rust on the otherhand... C wins.
+
 my favourite type of blog post is "I learnt a new thing and wanted to share it with you"
 
 IIFE is a poor mans let
