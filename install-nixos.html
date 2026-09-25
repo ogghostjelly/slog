@@ -47,6 +47,24 @@
             }
         }
     </style>
+    <style>
+        sh-fn {
+            color: yellow;
+        }
+
+        nix-com,
+        sh-com {
+            color: grey;
+        }
+
+        nix-prop {
+            color: cyan;
+        }
+
+        nix-str {
+            color: lime;
+        }
+    </style>
 </head>
 
 <body>
@@ -82,13 +100,13 @@
         </p>
         <code>
             <pre>
-    fdisk /dev/sdX
-    > o (MBR for legacy EFI)
-    > n (Create a 500MB boot partition named /dev/sdX1)
+    <sh-fn>fdisk</sh-fn> /dev/sdX
+    > o <sh-com>(MBR for legacy EFI)</sh-com>
+    > n <sh-com>(Create a 500MB boot partition named /dev/sdX1)</sh-com>
 
-    > n (Create the root partition named /dev/sdX2, just keep pressing enter)
+    > n <sh-com>(Create the root partition named /dev/sdX2, just keep pressing enter)</sh-com>
 
-    > w (Write the changes)
+    > w <sh-com>(Write the changes)</sh-com>
             </pre>
         </code>
 
@@ -98,7 +116,7 @@
         </p>
         <code>
             <pre>
-    mkfs.fat -F32 -L NIXOS_BOOT /dev/sdX1
+    <sh-fn>mkfs.fat</sh-fn> -F32 -L NIXOS_BOOT /dev/sdX1
             </pre>
         </code>
         <p>
@@ -111,13 +129,13 @@
         </p>
         <code>
             <pre>
-    # Setup luks encrypt at /dev/mapper/cryptroot
-    cryptsetup --label=NIXOS_LUKS luksFormat /dev/sdX2
-    cryptsetup luksOpen /dev/sdX2 cryptroot
+    <sh-com># Setup luks encrypt at /dev/mapper/cryptroot</sh-com>
+    <sh-fn>cryptsetup</sh-fn> --label=NIXOS_LUKS luksFormat /dev/sdX2
+    <sh-fn>cryptsetup</sh-fn> luksOpen /dev/sdX2 cryptroot
 
-    # Setup an LVM volume group named root_vg
-    pvcreate /dev/mapper/cryptroot
-    vgcreate root_vg /dev/mapper/cryptroot
+    <sh-com># Setup an LVM volume group named root_vg</sh-com>
+    <sh-fn>pvcreate</sh-fn> /dev/mapper/cryptroot
+    <sh-fn>vgcreate</sh-fn> root_vg /dev/mapper/cryptroot
             </pre>
         </code>
 
@@ -126,8 +144,8 @@
         </p>
         <code>
             <pre>
-    lvcreate -L &lt;size&gt; -n root root_vg
-    mkfs.ext4 -L NIXOS_ROOT /dev/mapper/root_vg-root
+    <sh-fn>lvcreate</sh-fn> -L &lt;size&gt; -n root root_vg
+    <sh-fn>mkfs.ext4</sh-fn> -L NIXOS_ROOT /dev/mapper/root_vg-root
             </pre>
         </code>
 
@@ -136,8 +154,8 @@
         </p>
         <code>
             <pre>
-    lvcreate -l +100%FREE -n persist root_vg
-    mkfs.ext4 -L NIXOS_PERSIST /dev/mapper/root_vg-persist
+    <sh-fn>lvcreate</sh-fn> -l +100%FREE -n persist root_vg
+    <sh-fn>mkfs.ext4</sh-fn> -L NIXOS_PERSIST /dev/mapper/root_vg-persist
             </pre>
         </code>
 
@@ -152,11 +170,11 @@
         </p>
         <code>
             <pre>
-    mkdir -p /mnt/{boot,persist}
+    <sh-fn>mkdir</sh-fn> -p /mnt/{boot,persist}
 
-    mount /dev/disk/by-label/NIXOS_ROOT /mnt
-    mount /dev/disk/by-label/NIXOS_BOOT /mnt/boot
-    mount /dev/disk/by-label/NIXOS_PERSIST /mnt/persist
+    <sh-fn>mount</sh-fn> /dev/disk/by-label/NIXOS_ROOT /mnt
+    <sh-fn>mount</sh-fn> /dev/disk/by-label/NIXOS_BOOT /mnt/boot
+    <sh-fn>mount</sh-fn> /dev/disk/by-label/NIXOS_PERSIST /mnt/persist
             </pre>
         </code>
 
@@ -166,10 +184,10 @@
         </p>
         <code>
             <pre>
-    mkdir -p /mnt/{persist,}/{nix,etc/nixos}
+    <sh-fn>mkdir</sh-fn> -p /mnt/{persist,}/{nix,etc/nixos}
     
-    mount --bind /mnt/persist/nix /mnt/nix
-    mount --bind /mnt/persist/etc/nixos /mnt/etc/nixos
+    <sh-fn>mount</sh-fn> --bind /mnt/persist/nix /mnt/nix
+    <sh-fn>mount</sh-fn> --bind /mnt/persist/etc/nixos /mnt/etc/nixos
             </pre>
         </code>
         <p>
@@ -184,7 +202,7 @@
         </p>
         <code>
             <pre>
-    nixos-generate-config --root /mnt
+    <sh-fn>nixos-generate-config</sh-fn> --root /mnt
             </pre>
         </code>
         <p>
@@ -198,8 +216,8 @@
         </p>
         <code>
             <pre>
-    boot.initrd.kernelModules = [ ... "cryptd" ]; # <-- add cryptd as a kernel module
-    boot.initrd.luks.devices.cryptroot.device = "/dev/disk/by-label/NIXOS_LUKS"; # <-- add luks device
+    <nix-prop>boot</nix-prop>.<nix-prop>initrd</nix-prop>.<nix-prop>kernelModules</nix-prop> = [ <nix-com>...</nix-com> <nix-str>"cryptd"</nix-str> ]; <nix-com># <-- add cryptd as a kernel module</nix-com>
+    <nix-prop>boot</nix-prop>.<nix-prop>initrd</nix-prop>.<nix-prop>luks</nix-prop>.<nix-prop>devices</nix-prop>.<nix-prop>cryptroot</nix-prop>.<nix-prop>device</nix-prop> = <nix-str>"/dev/disk/by-label/NIXOS_LUKS"</nix-str>; <nix-com># <-- add luks device</nix-com>
             </pre>
         </code>
         <p>
@@ -208,10 +226,10 @@
         </p>
         <code>
             <pre>
-    fileSystems."/persist" =
-        { device = "/dev/disk/by-label/NIXOS_PERSIST";
-          fsType = "ext4";
-          neededForBoot = true; # <-- add neededForBoot
+    <nix-prop>fileSystems</nix-prop>.<nix-str>"/persist"</nix-str> =
+        { <nix-prop>device</nix-prop> = <nix-str>"/dev/disk/by-label/NIXOS_PERSIST"</nix-str>;
+          <nix-prop>fsType</nix-prop> = <nix-str>"ext4"</nix-str>;
+          <nix-prop>neededForBoot</nix-prop> = <nix-str>true</nix-str>; <nix-com># <-- add neededForBoot</nix-com>
         };
             </pre>
         </code>
@@ -221,19 +239,19 @@
         </p>
         <code>
             <pre>
-    boot.initrd.systemd = {
-        enable = true;
-        extraBin."mkfs.ext4" = "${pkgs.e2fsprogs}/bin/mkfs.ext4";
-        services.wipe-file-systems = {
-            description = "Wipe the root filesystem";
-            unitConfig.DefaultDependencies = false;
-            serviceConfig.Type = "oneshot";
-            requiredBy = [ "initrd.target" ];
-            before = [ "local-fs-pre.target" ];
-            after = [ "initrd-root-device.target" "systemd-hibernate-resume.service" ];
-            script = ''
+    <nix-prop>boot</nix-prop>.<nix-prop>initrd</nix-prop>.<nix-prop>systemd</nix-prop> = {
+        <nix-prop>enable</nix-prop> = <nix-str>true</nix-str>;
+        <nix-prop>extraBin</nix-prop>.<nix-str>"mkfs.ext4"</nix-str> = <nix-str>"</nix-str>${<nix-prop>pkgs</nix-prop>.<nix-prop>e2fsprogs</nix-prop>}<nix-str>/bin/mkfs.ext4"</nix-str>;
+        <nix-prop>services</nix-prop>.<nix-prop>wipe-file-systems</nix-prop> = {
+            <nix-prop>description</nix-prop> = <nix-str>"Wipe the root filesystem"</nix-str>;
+            <nix-prop>unitConfig</nix-prop>.<nix-prop>DefaultDependencies</nix-prop> = <nix-str>false</nix-str>;
+            <nix-prop>serviceConfig</nix-prop>.<nix-prop>Type</nix-prop> = <nix-str>"oneshot"</nix-str>;
+            <nix-prop>requiredBy</nix-prop> = [ <nix-str>"initrd.target"</nix-str> ];
+            <nix-prop>before</nix-prop> = [ <nix-str>"local-fs-pre.target"</nix-str> ];
+            <nix-prop>after</nix-prop> = [ <nix-str>"initrd-root-device.target"</nix-str> <nix-str>"systemd-hibernate-resume.service"</nix-str> ];
+            <nix-prop>script</nix-prop> = <nix-str>''
                 mkfs.ext4 -F -L NIXOS_ROOT /dev/disk/by-label/NIXOS_ROOT
-            '';
+            ''</nix-str>;
         };
     };
             </pre>
@@ -246,7 +264,7 @@
 
         <h2>Install</h2>
         <p>
-            Run <code>nixos install --root /mnt</code>.
+            Run <code><sh-fn>nixos install --root /mnt</sh-fn></code>.
         </p>
         <p>
             and that's my setup! I've been thinking of using <a href="https://github.com/nix-community/disko/">disko</a>

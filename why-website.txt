@@ -1,0 +1,15 @@
+I've been thinking about this website and it's philosophy (or lack thereof). I've had ideas about growing software and this website was sort of an attempt at that. The constraint was simple: no JS and no (traditional) SSG. For two reasons:
+1. I want the software to be soup. You look at the raw data of the website holistically as one big soup, not as an abstract representation. You aren't limited by how the abstract decides to represent your data, because you aren't forced to express your ideas in the abstract.
+2. I wanted repetition. Repeat repeat repeat yourself. Having one source of truth is powerful for a programmer, and that's a bad thing. If we give up control, the code can become a victim to the tides, being shaped by mistakes rather than design.
+
+The ultimate goal is evolution. It's to create a website that is born rather than invented. You let the code be soup, you lose control over it, and you allow it to shape itself. Then the website is alive.
+
+Each page is copy but not a template. Changes don't propagate across pages. Each copy gets to evolve in it's own direction. I tweak the code over a long time and slowly it drifts from it's siblings.
+
+I think SSGs are OK to use as long as the SSG is bidirectional. Usually transpilers are unidirectional in that they take in source code and give out a compilation artefact. Any change to the compilation artefact is overwritten by the source code, e.g if I modify a binary and recompile, it just gets overwritten. In a sense, the artefact is immutable, which isn't changey. Bidirectional means changes to the artefact affect the source code and vice versa. Transpilers that operate in-place are valid too, since there is no compilation artefact, just source to source, e.g an auto-formatter. I want to be able to edit anything and everything and have it meaningfully change.
+
+(There is still one blog post that doesn't follow this methodology, I need to fix that)
+
+I've also personally added the constraint of I have to write every SSG from scratch for each blog post and it has to be written in a unique or silly way.
+
+I've also thought a lot about the tools I use to make this website, and I'm upset with the tools I'm using. The tools you use invariably affect the product (AI proponents need to be reminded of that). Even in small things, the names of files in my folders are named so that they sort alphabetically because that's how VSCode sorts file entries. I want a tool that encourages the philosophy. It would obviously have to be FOSS so you can change the tool yourself.

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog what is pin</title>
+    <style>
+        body {
+            background-color: beige;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>So... what is <code>Pin</code> anyway?</h1>
+
+    <nav>
+        <a href="index.html">go back</a>
+    </nav>
+
+    <p>
+        It's for self-referential data-structures. Let's try making one. Here we have a struct pointing to itself.
+    </p>
+
+    <pre><code>
+    struct MyStruct<'a> {
+        x: String,
+        y: &'a String,
+    }
+
+    let s = String::new();
+        - move occurs because `s` has type `String`, which does not implement the `Copy` trait
+    
+    let my_struct = MyStruct { x: s, y: &s };
+                                  -     ^^ value borrowed here after move
+                                  |
+                                  value moved here
+    </code></pre>
+
+    <p>Hmmm, <code>s</code> is moved after we take a reference to it. Let's try.</p>
+
+    <pre><code>
+    struct MyStruct<'a> {
+        x: String,
+        y: Option<&'a String>,
+    }
+
+    let s = String::new();
+    let mut my_struct = MyStruct { x: s, y: None };
+
+    my_struct.y = Some(&my_struct.x);
+    </code></pre>
+
+    <p>It compiles! But as soon as we try to do anything with it, even something as innoculous as calling <code>drop</code>...</p>
+
+    <code><pre>
+error[E0505]: cannot move out of `my_struct` because it is borrowed
+    drop(my_struct)
+         ^^^^^^^^^
+         |
+         move out of `my_struct` occurs here
+    </pre></code>
+
+    <p>Why is this a problem? Why won't Rust just let me do it?</p>
+
+    <p>Most compile errors in Rust hint at some bigger issue in your program. Let's see what our struct looks like in memory.</p>
+
+    <pre><code>
+        .-------------.
+        v             |
+    .-----------.------------.
+    | x: String | y: &String |
+    .-----------.------------.
+    </code></pre>
+
+    <p>If we try to call drop, we move the value to a new location in memory and free the old space.</p>
+
+    <pre><code>
+        .---------------------------------------------.
+        v                                             |
+    .------------------------.      .-----------.------------.
+    |         freed          |      | x: String | y: &String |
+    .------------------------.      .-----------.------------.
+    </code></pre>
+
+    <p>But look! When Rust moves a value, it does so bit by bit, copying the data exactly. Our pointer now points to the old location which is now empty! That's UB!</p>
+
+    <p>Let's say I'm writing a library, and I have a self-referential struct that uses unsafe raw pointers.</p>
+
+    <pre><code>
+    struct MyStruct {
+        x: String,
+        y: *const String,
+    }
+    </code></pre>
+
+    <p>This is a problem, if I give my users an <code>&mut MyStruct</code> then they can use <code>std::mem::*</code> functions to move the struct around and cause UB. In Rust, it is true that if you give someone an &mut pointer, they can use it to move the data. How do I give my users MyStruct without letting them move it?</p>
+
+    <p>This is where Pin comes in. Pin isn't a special compiler feature. It's actually just a regular struct, and it looks like this.</p>
+
+    <pre><code>
+    pub struct Pin&lt;Ptr&gt; {
+        pointer: Ptr,
+    }
+    </code></pre>
+
+    <p>Yup! That's it!</p>
+
+    <p>Instead of giving my users an <code>&mut MyStruct</code>. I can give them a <code>Pin&lt;&mut MyStruct&gt;</code>. If they try to <code>std::mem::take</code> it, they'll get an error!</p>
+
+    <pre><code>
+    fn do_bad_stuff(my_struct: Pin&lt;&mut MyStruct&gt;) {
+        std::mem::take(my_struct);
+        -------------- ^ expected `&mut _`, found `Pin<&mut MyStruct>`
+        |
+        arguments to this function are incorrect
+    }
+    </code></pre>
+
+    <p>In short, Pin guarantees that the value behind a reference will never move.</p>
+
+    <p>You can pin a value on the heap with Box::pin. You can pin a value on the stack with the pin! macro. Or if the type implements Unpin you can just use Pin::new. Unpin is an escape hatch that says "hey I know I wrapped this type in a Pin&lt;T&gt; but just disregard that because I actually don't care if you move it.". It's used to call functions that expect a Pin&lt;T&gt; even when pinning T has no effect.</p>
+
+    <h1>and why does Future need it?</h1>
+
+    <p>Futures are state-machines. Let's look at an example.</p>
+
+    <pre><code>
+    async fn crunch_numbers() {
+        let x = 1;
+        println!("Om! {x}");
+        let y = 2
+        let z = &y;
+        println!("Nom! {z}");
+    }
+    </code></pre>
+
+    <p>Rust turns this into something like.</p>
+
+    <pre><code>
+    fn crunch_numbers() -> impl Future {
+        CrunchNumbersStateMachine::Start
+    }
+
+    enum CrunchNumbersStateMachine {
+        Start,
+        Om { x: i32 },
+        // z points to y
+        Nom { y: i32, z: *const i32 },
+        Done,
+    }
+    </code></pre>
+
+    <p>Do you see that? Yup, it's a self-referential struct.</p>
+
+    <p>Let's look at the function signature for <code>Future::poll</code>.</p>
+
+    <pre><code>
+    fn poll(self: Pin&lt;&mut Self&gt;, cx: &mut Context&lt;'_&gt;) -> Poll&lt;Self::Output&gt;;
+    </code></pre>
+
+    <p>The Pin&lt;&mut Self&gt; just means "hey if you're going to poll the future, please don't move it.". You can imagine it would be pretty bad if a future got half-way through execution, with active references into itself, and then suddenly got moved to another place in memory.</p>
+</body>
+
+</html>

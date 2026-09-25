@@ -47,6 +47,27 @@
             }
         }
     </style>
+    <style>
+        rs-kwd {
+            color: pink;
+        }
+
+        rs-str {
+            color: lightgreen;
+        }
+
+        rs-fn {
+            color: cyan;
+        }
+
+        rs-com {
+            color: grey;
+        }
+
+        rs-sym {
+            color: lightblue;
+        }
+    </style>
 </head>
 
 <body>
@@ -99,10 +120,10 @@
         </p>
 
         <code><pre>
-unsafe {
-    asm!("sub rsp, 8"); // allocate 8 bytes
-    do_some_stuff();
-    asm!("add rsp, 8"); // deallocate 8 bytes
+<rs-kwd>unsafe</rs-kwd> {
+    <rs-fn>asm!</rs-fn>(<rs-str>"sub rsp, 8"</rs-str>); <rs-com>// allocate 8 bytes</rs-com>
+    <rs-fn>do_some_stuff</rs-fn>();
+    <rs-fn>asm!</rs-fn>(<rs-str>"add rsp, 8"</rs-str>); <rs-com>// deallocate 8 bytes</rs-com>
 }
         </pre></code>
 
@@ -112,22 +133,22 @@ unsafe {
         </a>
 
         <br><br><q>
-            The stack pointer must be restored to its original value at the end of the <code>asm!</code> code block
+            The stack pointer must be restored to its original value at the end of the <code><rs-fn>asm!</rs-fn></code> code block
         </q><br><br>
 
         <p>
             Hmm, that's definitely going to be a problem. If you look back up at the code we wrote you can see the stack
-            pointer isn't restored at the end of the <code>asm!("sub rsp, 8")</code> block.
+            pointer isn't restored at the end of the <code><rs-fn>asm!</rs-fn>(<rs-str>"sub rsp, 8"</rs-str>)</code> block.
             That's going to cause weird bugs and undefined behaviour if we aren't careful.
         </p>
 
         Ok, but what if we just put it in one block.
 
         <code><pre>
-unsafe {
-    asm!(
-        "sub rsp, 8",
-        "add rsp, 8",
+<rs-kwd>unsafe</rs-kwd> {
+    <rs-fn>asm!</rs-fn>(
+        <rs-str>"sub rsp, 8"</rs-str>,
+        <rs-str>"add rsp, 8"</rs-str>,
     )
 }
         </pre></code>
@@ -143,25 +164,25 @@ unsafe {
         </p>
 
         <code><pre>
-unsafe {
-    extern "C" fn my_function() {}
+<rs-kwd>unsafe</rs-kwd> {
+    <rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str> <rs-kwd>fn</rs-kwd> <rs-fn>my_function</rs-fn>() {}
 
-    asm! {
-        "sub rsp, 8",
-        "call {f}",
-        "add rsp, 8",
+    <rs-fn>asm!</rs-fn> {
+        <rs-str>"sub rsp, 8"</rs-str>,
+        <rs-str>"call </rs-str>{<rs-sym>f</rs-sym>}<rs-str>"</rs-str>,
+        <rs-str>"add rsp, 8"</rs-str>,
 
-        f = in(reg) my_function,
+        <rs-sym>f</rs-sym> = <rs-fn>in</rs-fn>(<rs-kwd>reg</rs-kwd>) <rs-sym>my_function</rs-sym>,
     }
 }
         </pre></code>
 
         <p>
-            We have to specify the function pointer as an input register with <code>f = in(reg) my_function</code>.
+            We have to specify the function pointer as an input register with <code><rs-sym>f</rs-sym> = <rs-fn>in</rs-fn>(<rs-kwd>reg</rs-kwd>) <rs-sym>my_function</rs-sym></code>.
             You can <a href="https://doc.rust-lang.org/reference/inline-assembly.html#operand-type">find more
                 information about setting input/output registers in the Rust reference book.</a>
-            But basically, you tell the compiler what the asm block receives with <code>in(reg)</code> and what it
-            returns with <code>out(reg)</code>.
+            But basically, you tell the compiler what the asm block receives with <code><rs-fn>in</rs-fn>(<rs-kwd>reg</rs-kwd>)</code> and what it
+            returns with <code><rs-kwd>out</rs-kwd>(<rs-kwd>reg</rs-kwd>)</code>.
         </p>
 
         <p>
@@ -173,22 +194,22 @@ unsafe {
         </p>
 
         <p>
-            Since we are calling an <code>extern "C"</code> function, we are going to be clobbering any registers that
-            the <code>extern "C"</code> function would. We can tell the compiler that we are clobbering registers in a C
-            way with the <code>clobber_abi("C")</code> flag. Let's change the stack pointer to be a multiple of 16 too.
+            Since we are calling an <code><rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str></code> function, we are going to be clobbering any registers that
+            the <code><rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str></code> function would. We can tell the compiler that we are clobbering registers in a C
+            way with the <code><rs-fn>clobber_abi</rs-fn>(<rs-str>"C"</rs-str>)</code> flag. Let's change the stack pointer to be a multiple of 16 too.
         </p>
 
         <code><pre>
-unsafe {
-    extern "C" fn my_function() {}
+<rs-kwd>unsafe</rs-kwd> {
+    <rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str> <rs-kwd>fn</rs-kwd> <rs-fn>my_function</rs-fn>() {}
 
-    asm! {
-        "sub rsp, 16", // change to 16
-        "call {f}",
-        "add rsp, 16", // change to 16
+    <rs-fn>asm!</rs-fn> {
+        <rs-str>"sub rsp, 16"</rs-str>, <rs-com>// change to 16</rs-com>
+        <rs-str>"call </rs-str>{<rs-sym>f</rs-sym>}<rs-str>"</rs-str>,
+        <rs-str>"add rsp, 16"</rs-str>, <rs-com>// change to 16</rs-com>
 
-        f = in(reg) my_function,
-        clobber_abi("C"), // specify C ABI
+        <rs-sym>f</rs-sym> = <rs-fn>in</rs-fn>(<rs-kwd>reg</rs-kwd>) <rs-sym>my_function</rs-sym>,
+        <rs-fn>clobber_abi</rs-fn>(<rs-str>"C"</rs-str>), <rs-com>// specify C ABI</rs-com>
     }
 }
         </pre></code>
@@ -209,17 +230,17 @@ unsafe {
         </p>
 
         <code><pre>
-unsafe {
-    extern "C" fn my_function(ptr: *mut c_void) {}
+<rs-kwd>unsafe</rs-kwd> {
+    <rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str> <rs-kwd>fn</rs-kwd> <rs-fn>my_function</rs-fn>(<rs-sym>ptr</rs-sym>: *<rs-kwd>mut</rs-kwd> <rs-sym>c_void</rs-sym>) {}
 
-    asm! {
-        "sub rsp, 16",
-        "mov rdi, rsp", // set first parameter to rsp
-        "call {f}",
-        "add rsp, 16",
+    <rs-fn>asm!</rs-fn> {
+        <rs-str>"sub rsp, 16"</rs-str>,
+        <rs-str>"mov rdi, rsp"</rs-str>, <rs-com>// set first parameter to rsp</rs-com>
+        <rs-str>"call </rs-str>{<rs-sym>f</rs-sym>}<rs-str>"</rs-str>,
+        <rs-str>"add rsp, 16"</rs-str>,
 
-        f = in(reg) my_function,
-        clobber_abi("C"),
+        <rs-sym>f</rs-sym> = <rs-fn>in</rs-fn>(<rs-kwd>reg</rs-kwd>) <rs-sym>my_function</rs-sym>,
+        <rs-fn>clobber_abi</rs-fn>(<rs-str>"C"</rs-str>),
     }
 }
         </pre></code>
@@ -238,7 +259,7 @@ unsafe {
 
         <p>
             There's one detail I didn't cover and that's making alloca work for any closure and not just
-            <code>extern "C"</code> functions.
+            <code><rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str></code> functions.
             You can see the full source code <a href="https://github.com/ogghostjelly/alloca-shenanigans/">here</a>.
             I made this a while ago but I thought I may aswell turn it into a slog post.
         </p>

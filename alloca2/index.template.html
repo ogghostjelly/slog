@@ -405,7 +405,7 @@
             If the operand has lower precedence than the <code>minimum</code>, we just return <code>lhs</code> and allow some other function higher in the call stack to parse the rest of it.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     fn parse_binop(minimum, lhs) {
         if peek_operand().precedence < minimum {
             return lhs;
@@ -418,7 +418,7 @@
             If the operand has higher precedence than the <code>minimum</code>, then parse the next primary and next operand.
         </p>
 
-        <code><pre>
+        <code lang="c"><pre>
     let prev = parse_operand(); 
     let rhs = parse_primary();
     let next = peek_operand();

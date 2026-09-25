@@ -352,10 +352,10 @@
 <p>
             If the operand has lower precedence than the <code><tok type="symbol">minimum</tok></code>, we just return <code><tok type="symbol">lhs</tok></code> and allow some other function higher in the call stack to parse the rest of it.
         </p>
-<code><pre>
-    <tok type="keyword">fn</tok> <tok type="symbol">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
-        <tok type="keyword">if</tok> <tok type="symbol">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">minimum</tok> <tok o="{" type="operand">{</tok>
-            <tok type="keyword">return</tok> <tok type="symbol">lhs</tok><tok type="comment">;</tok>
+<code lang="c"><pre>
+    <tok type="keyword">fn</tok> <tok type="function">parse_binop</tok><tok o="(" type="operand">(</tok><tok type="symbol">minimum</tok><tok o="," type="operand">,</tok> <tok type="symbol">lhs</tok><tok o=")" type="operand">)</tok> <tok o="{" type="operand">{</tok>
+        <tok type="keyword">if</tok> <tok type="function">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o="." type="operand">.</tok><tok type="symbol">precedence</tok> <tok o="&lt;" type="operand">&lt;</tok> <tok type="symbol">minimum</tok> <tok o="{" type="operand">{</tok>
+            <tok type="keyword">return</tok> <tok type="symbol">lhs</tok><tok o=";" type="operand">;</tok>
         <tok o="}" type="operand">}</tok>
 
         <tok o="." type="operand">.</tok><tok o="." type="operand">.</tok><tok o="." type="operand">.</tok>
@@ -363,10 +363,10 @@
 <p>
             If the operand has higher precedence than the <code><tok type="symbol">minimum</tok></code>, then parse the next primary and next operand.
         </p>
-<code><pre>
-    <tok type="symbol">let</tok> <tok type="symbol">prev</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">parse_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok type="comment">; </tok>
-    <tok type="symbol">let</tok> <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">parse_primary</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok type="comment">;</tok>
-    <tok type="symbol">let</tok> <tok type="symbol">next</tok> <tok o="=" type="operand">=</tok> <tok type="symbol">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok type="comment">;</tok>
+<code lang="c"><pre>
+    <tok type="type">let</tok> <tok type="symbol">prev</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok> 
+    <tok type="type">let</tok> <tok type="symbol">rhs</tok> <tok o="=" type="operand">=</tok> <tok type="function">parse_primary</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
+    <tok type="type">let</tok> <tok type="symbol">next</tok> <tok o="=" type="operand">=</tok> <tok type="function">peek_operand</tok><tok o="(" type="operand">(</tok><tok o=")" type="operand">)</tok><tok o=";" type="operand">;</tok>
         </pre></code>
 <p>Our example now looks like this:</p>
 <code lang="simple"><pre>

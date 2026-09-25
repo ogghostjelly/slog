@@ -47,6 +47,35 @@
             }
         }
     </style>
+    <style>
+        rs-kwd {
+            color: pink;
+        }
+
+        rs-str {
+            color: lightgreen;
+        }
+
+        rs-fn {
+            color: cyan;
+        }
+
+        rs-com {
+            color: grey;
+        }
+
+        rs-sym {
+            color: lightblue;
+        }
+
+        rs-op {
+            color: yellow;
+        }
+
+        rs-num {
+            color: yellow;
+        }
+    </style>
 </head>
 
 <body>
@@ -79,17 +108,17 @@
 
         <p>
             First we want to be able to execute a program. This is pretty simple and to do this we'll use the
-            <code>exec</code> libc functions.
+            <code><rs-fn>exec</rs-fn></code> libc functions.
             There are <a href="https://www.man7.org/linux/man-pages/man3/exec.3.html">many exec</a>
             functions but they all replace the current process with a new process.
         </p>
 
         <code><pre>
-    use nix::unistd::execv;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>unistd</rs-sym>::<rs-sym>execv</rs-sym>;
 
-    execv(c"/bin/echo", &[c"echo", c"Hi!"])?;
+    <rs-fn>execv</rs-fn>(<rs-str>c"/bin/echo"</rs-str>, <rs-op>&</rs-op>[<rs-str>c"echo"</rs-str>, <rs-str>c"Hi!"</rs-str>])?;
 
-    unreachable!();
+    <rs-fn>unreachable!</rs-fn>();
         </pre></code>
 
         <p>The console output will look something like this:</p>
@@ -99,15 +128,15 @@
         </pre></code>
 
         <p>
-            <code>execl*</code> functions accept arguments variadic-ly. <code>execv*</code> functions accept arguments
-            as a list. <code>exec*e</code> functions allow you to set the environment variables of the new process.
-            <code>exec*p</code> functions will search for the program to be executed in the <code>PATH</code>
+            <code><rs-fn>execl</rs-fn>*</code> functions accept arguments variadic-ly. <code><rs-fn>execv</rs-fn>*</code> functions accept arguments
+            as a list. <code><rs-fn>exec</rs-fn>*<rs-fn>e</rs-fn></code> functions allow you to set the environment variables of the new process.
+            <code><rs-fn>exec</rs-fn>*<rs-fn>p</rs-fn></code> functions will search for the program to be executed in the <code>PATH</code>
             environment variable.
         </p>
 
         <p>
-            So now we can execute a program. Note the presence of that <code>unreachable!</code>
-            statement. Since <code>exec</code> replaces the entire process, any code after a call to it will never be
+            So now we can execute a program. Note the presence of that <code><rs-fn>unreachable!</rs-fn></code>
+            statement. Since <code><rs-fn>exec</rs-fn></code> replaces the entire process, any code after a call to it will never be
             run!</p>
 
         <h3>fork</h3>
@@ -115,19 +144,19 @@
         <p>
             <code><a href="https://www.man7.org/linux/man-pages/man2/fork.2.html">fork</a></code> is
             simple. It duplicates the process. If you are now running as the parent, the child
-            process id is returned. If you are now running as the child, <code>0</code> is returned.
+            process id is returned. If you are now running as the child, <code><rs-num>0</rs-num></code> is returned.
         </p>
 
         <code><pre>
-    use nix::libc::fork;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>libc</rs-sym>::<rs-sym>fork</rs-sym>;
 
-    println!("Hello, World!");
+    <rs-fn>println!</rs-fn>(<rs-str>"Hello, World!"</rs-str>);
     
-    let pid = unsafe { fork() };
-    if pid == 0 {
-        println!("I am the child process (PID={pid})");
-    } else {
-        println!("I am the parent process (PID={pid})");
+    <rs-kwd>let</rs-kwd> <rs-sym>pid</rs-sym> = <rs-kwd>unsafe</rs-kwd> { <rs-fn>fork</rs-fn>() };
+    <rs-kwd>if</rs-kwd> <rs-sym>pid</rs-sym> == <rs-num>0</rs-num> {
+        <rs-fn>println!</rs-fn>(<rs-str>"I am the child process (PID=</rs-str>{<rs-sym>pid</rs-sym>})<rs-str>"</rs-str>);
+    } <rs-kwd>else</rs-kwd> {
+        <rs-fn>println!</rs-fn>(<rs-str>"I am the parent process (PID=</rs-str>{<rs-sym>pid</rs-sym>}<rs-str>)"</rs-str>);
     }
         </pre></code>
 
@@ -140,21 +169,21 @@
         </pre></code>
 
         <p>
-            Now we can pair <code>exec</code> and <code>fork</code> together to spawn a process.
+            Now we can pair <code><rs-fn>exec</rs-fn></code> and <code><rs-fn>fork</rs-fn></code> together to spawn a process.
         </p>
 
         <code><pre>
-    use nix::libc::fork;
-    use nix::unistd::execv;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>libc</rs-sym>::<rs-sym>fork</rs-sym>;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>unistd</rs-sym>::<rs-sym>execv</rs-sym>;
 
-    let pid = unsafe { fork() };
-    if pid == 0 {
-        execv(c"/bin/echo", &[c"echo", c"Hi from child!"])?;
-    } else {
-        println!("Hi from parent!");
+    <rs-kwd>let</rs-kwd> <rs-sym>pid</rs-sym> = <rs-kwd>unsafe</rs-kwd> { <rs-fn>fork</rs-fn>() };
+    <rs-kwd>if</rs-kwd> <rs-sym>pid</rs-sym> == <rs-num>0</rs-num> {
+        <rs-fn>execv</rs-fn>(<rs-str>c"/bin/echo"</rs-str>, <rs-op>&</rs-op>[<rs-str>c"echo"</rs-str>, <rs-str>c"Hi from child!"</rs-str>])?;
+    } <rs-kwd>else</rs-kwd> {
+        <rs-fn>println!</rs-fn>(<rs-str>"Hi from parent!"</rs-str>);
     }
 
-    println!("All done!");
+    <rs-fn>println!</rs-fn>(<rs-str>"All done!"</rs-str>);
         </pre></code>
 
         <p>The console output will look something like this:</p>
@@ -170,29 +199,26 @@
         <p>
             <code><a href="https://www.man7.org/linux/man-pages/man2/ptrace.2.html">ptrace</a></code> is the most
             important function here. It's going to allow us to hook into our target program and start messing with it.
-            The child process will call <code>ptrace(PTRACE_TRACEME, ...)</code> which allows the parent process to
+            The child process will call <code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_TRACEME</rs-sym>, <rs-com>...</rs-com>)</code> which allows the parent process to
             trace it.
         </p>
 
         <code><pre>
-    use nix::libc::fork;
-    use nix::sys::ptrace;
-    use nix::unistd::execv;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>libc</rs-sym>::<rs-sym>fork</rs-sym>;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>sys</rs-sym>::<rs-sym>ptrace</rs-sym>;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>unistd</rs-sym>::<rs-sym>execv</rs-sym>;
 
-    let pid = unsafe { fork() };
+    <rs-kwd>let</rs-kwd> <rs-sym>pid</rs-sym> = <rs-kwd>unsafe</rs-kwd> { <rs-fn>fork</rs-fn>() };
 
-    if pid == 0 {
-        ptrace::traceme()?;
-        execv(c"/path/to/program", &[c"program"])?;
-    } else {
-        // run tracer functions
+    <rs-kwd>if</rs-kwd> <rs-sym>pid</rs-sym> == <rs-num>0</rs-num> {
+        <rs-sym>ptrace</rs-sym>::<rs-fn>traceme</rs-fn>()?;
+        <rs-fn>execv</rs-fn>(<rs-str>c"/path/to/program"</rs-str>, <rs-op>&</rs-op>[<rs-str>c"program"</rs-str>])?;
+    } <rs-kwd>else</rs-kwd> {
+        <rs-com>// run tracer functions</rs-com>
     }
         </pre></code>
 
-        <p>After a child process (tracee) has called <code>PTRACE_TRACEME</code> the parent process (tracer) can call
-            ptrace
-            functions to
-            inspect and manipulate the child.</p>
+        <p>After a child process (tracee) has called <code><rs-sym>PTRACE_TRACEME</rs-sym></code> the parent process (tracer) can call ptrace functions to inspect and manipulate the child.</p>
 
         <h3>waitpid</h3>
 
@@ -207,19 +233,19 @@
         </p>
 
         <code><pre>
-    use nix::sys::ptrace;
-    use nix::sys::wait::{WaitPidFlag, WaitStatus, waitpid};
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>sys</rs-sym>::<rs-sym>ptrace</rs-sym>;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>sys</rs-sym>::<rs-sym>wait</rs-sym>::{<rs-sym>WaitPidFlag</rs-sym>, <rs-sym>WaitStatus</rs-sym>, <rs-sym>waitpid</rs-sym>};
 
-    // wait for an event
-    let status = waitpid(child_pid, Some(WaitPidFlag::WNOHANG))?;
+    <rs-com>// wait for an event</rs-com>
+    <rs-kwd>let</rs-kwd> <rs-sym>status</rs-sym> = <rs-fn>waitpid</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>Some</rs-fn>(<rs-sym>WaitPidFlag</rs-sym>::<rs-sym>WNOHANG</rs-sym>))?;
 
-    // do some stuff
-    if let WaitStatus::Exited(_, _) = status {
-        println!("The process exited.");
+    <rs-com>// do some stuff</rs-com>
+    <rs-kwd>if</rs-kwd> <rs-kwd>let</rs-kwd> <rs-sym>WaitStatus</rs-sym>::<rs-sym>Exited</rs-sym>(<rs-sym>_</rs-sym>, <rs-sym>_</rs-sym>) = <rs-sym>status</rs-sym> {
+        <rs-fn>println!</rs-fn>(<rs-str>"The process exited."</rs-str>);
     }
 
-    // unpause tracee
-    ptrace::cont(child_pid, None)?;
+    <rs-com>// unpause tracee</rs-com>
+    <rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
         </pre></code>
 
         <h3>personality</h3>
@@ -227,51 +253,51 @@
         <p>
             <code><a href="https://www.man7.org/linux/man-pages/man2/personality.2.html">personality</a></code> sets a
             bunch
-            of different execution options for the current process. We will be using the <code>ADDR_NO_RANDOMIZE</code>
+            of different execution options for the current process. We will be using the <code><rs-sym>ADDR_NO_RANDOMIZE</rs-sym></code>
             flag to disable
             <a href="https://en.wikipedia.org/wiki/Address_space_layout_randomization">ASLR</a>. This makes reading and
             interpreting the addresses of functions much easier.
 
             <code><pre>
-    use nix::libc::{ADDR_NO_RANDOMIZE, personality};
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>libc</rs-sym>::{<rs-sym>ADDR_NO_RANDOMIZE</rs-sym>, <rs-sym>personality</rs-sym>};
 
-    unsafe { personality(ADDR_NO_RANDOMIZE as u64) };
+    <rs-kwd>unsafe</rs-kwd> { <rs-fn>personality</rs-fn>(<rs-sym>ADDR_NO_RANDOMIZE</rs-sym> <rs-kwd>as</rs-kwd> <rs-sym>u64</rs-sym>) };
             </pre></code>
         </p>
 
         <h3>example code</h3>
 
         <p>
-            Let's make a program that waits for an event, sets the <code>rax</code> register to
-            <code>0x12345</code>,
+            Let's make a program that waits for an event, sets the <code><rs-sym>rax</rs-sym></code> register to
+            <code><rs-num>0x12345</rs-num></code>,
             and then continues execution of the tracee.
         </p>
 
         <code><pre>
-    use nix::libc::{ADDR_NO_RANDOMIZE, fork, personality};
-    use nix::sys::ptrace;
-    use nix::sys::wait::waitpid;
-    use nix::unistd::{Pid, execv};
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>libc</rs-sym>::{<rs-sym>ADDR_NO_RANDOMIZE</rs-sym>, <rs-sym>fork</rs-sym>, <rs-sym>personality</rs-sym>};
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>sys</rs-sym>::<rs-sym>ptrace</rs-sym>;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>sys</rs-sym>::<rs-sym>wait</rs-sym>::<rs-sym>waitpid</rs-sym>;
+    <rs-kwd>use</rs-kwd> <rs-sym>nix</rs-sym>::<rs-sym>unistd</rs-sym>::{<rs-sym>Pid</rs-sym>, <rs-sym>execv</rs-sym>};
 
-    let pid = unsafe { fork() };
+    <rs-kwd>let</rs-kwd> <rs-sym>pid</rs-sym> = <rs-kwd>unsafe</rs-kwd> { <rs-fn>fork</rs-fn>() };
 
-    if pid == 0 {
-        unsafe { personality(ADDR_NO_RANDOMIZE as u64) };
-        ptrace::traceme()?;
-        execv(c"/path/to/program", &[c"program"])?;
-    } else {
-        // wait for event
-        let child_pid = Pid::from_raw(pid);
-        _ = waitpid(child_pid, None)?;
-        // after event tracee is paused
+    <rs-kwd>if</rs-kwd> <rs-sym>pid</rs-sym> == <rs-num>0</rs-num> {
+        <rs-kwd>unsafe</rs-kwd> { <rs-fn>personality</rs-fn>(<rs-sym>ADDR_NO_RANDOMIZE</rs-sym> <rs-kwd>as</rs-kwd> <rs-sym>u64</rs-sym>) };
+        <rs-sym>ptrace</rs-sym>::<rs-fn>traceme</rs-fn>()?;
+        <rs-fn>execv</rs-fn>(<rs-str>c"/path/to/program"</rs-str>, <rs-op>&</rs-op>[<rs-str>c"program"</rs-str>])?;
+    } <rs-kwd>else</rs-kwd> {
+        <rs-com>// wait for event</rs-com>
+        <rs-kwd>let</rs-kwd> <rs-sym>child_pid</rs-sym> = <rs-sym>Pid</rs-sym>::<rs-fn>from_raw</rs-fn>(<rs-sym>pid</rs-sym>);
+        <rs-sym>_</rs-sym> = <rs-fn>waitpid</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
+        <rs-com>// after event tracee is paused</rs-com>
 
-        // set register
-        let mut regs = ptrace::getregs(child_pid)?;
-        regs.rax = 0x12345;
-        ptrace::setregs(child_pid, regs)?;
+        <rs-com>// set register</rs-com>
+        <rs-kwd>let</rs-kwd> <rs-kwd>mut</rs-kwd> <rs-sym>regs</rs-sym> = <rs-sym>ptrace</rs-sym>::<rs-fn>getregs</rs-fn>(<rs-sym>child_pid</rs-sym>)?;
+        <rs-sym>regs</rs-sym>.<rs-sym>rax</rs-sym> = <rs-num>0x12345</rs-num>;
+        <rs-sym>ptrace</rs-sym>::<rs-fn>setregs</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>regs</rs-sym>)?;
 
-        // unpause tracee (continue)
-        ptrace::cont(child_pid, None)?;
+        <rs-com>// unpause tracee (continue)</rs-com>
+        <rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
     }
         </pre></code>
 
@@ -279,24 +305,24 @@
             There are much more useful ptrace functions. I'll list a few here that you might want to look into.
         <ul>
             <li>
-                <code>ptrace(PTRACE_CONT, ...)</code> -
+                <code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_CONT</rs-sym>, <rs-com>...</rs-com>)</code> -
                 resume execution of the tracee.
             </li>
-            <li><code>ptrace(PTRACE_STEP, ...)</code> - resume exection but stop on the next instruction or system call
+            <li><code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_STEP</rs-sym>, <rs-com>...</rs-com>)</code> - resume exection but stop on the next instruction or system call
                 (configurable)</li>
-            <li><code>ptrace(PTRACE_GETREGS, ...)</code> - gets the registers of the tracee process</li>
-            <li><code>ptrace(PTRACE_SETREGS, ...)</code> - sets the registers of the tracee process</li>
-            <li><code>ptrace(PTRACE_PEEKDATA, ...)</code> - reads the memory of the tracee process</li>
-            <li><code>ptrace(PTRACE_POKEDATA, ...)</code> - writes the memory of the tracee process</li>
+            <li><code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_GETREGS</rs-sym>, <rs-com>...</rs-com>)</code> - gets the registers of the tracee process</li>
+            <li><code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_SETREGS</rs-sym>, <rs-com>...</rs-com>)</code> - sets the registers of the tracee process</li>
+            <li><code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_PEEKDATA</rs-sym>, <rs-com>...</rs-com>)</code> - reads the memory of the tracee process</li>
+            <li><code><rs-fn>ptrace</rs-fn>(<rs-sym>PTRACE_POKEDATA</rs-sym>, <rs-com>...</rs-com>)</code> - writes the memory of the tracee process</li>
         </ul>
         </p>
 
         <p>
             The control flow when using ptrace usually goes something like this: The tracer will use
-            <code>waitpid</code> to wait
+            <code><rs-fn>waitpid</rs-fn></code> to wait
             for the tracee to halt, the tracer will perform some calculation like displaying UI or modifying registers,
             then the tracer will call
-            <code>ptrace::cont</code> or <code>ptrace::step</code> to continue execution.
+            <code><rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn></code> or <code><rs-sym>ptrace</rs-sym>::<rs-fn>step</rs-fn></code> to continue execution.
         </p>
 
         <h2>moving on</h2>
@@ -310,8 +336,8 @@
         <p>
             One small note. If you're reading the <code>objdump</code> of your binary and the instruction pointer
             addresses aren't matching up, you may want to try
-            <code>rip - 0x5555_5555_4000</code>. This is because even though we disabled ASLR the kernel might decide to
-            offset your binary by a static base address. The offset number might not be <code>0x5555_5555_4000</code>
+            <code><rs-sym>rip</rs-sym> - <rs-num>0x5555_5555_4000</rs-num></code>. This is because even though we disabled ASLR the kernel might decide to
+            offset your binary by a static base address. The offset number might not be <code><rs-num>0x5555_5555_4000</rs-num></code>
             but that is most common.
         </p>
 
@@ -323,12 +349,12 @@
         </p>
 
         <code><pre>
-    let old_value = ptrace::read(child_pid, breakpoint_address)?;
-    // set the first byte to 0xCC
-    // 0xCC is the opcode for the INT3 system interrupt instruction.
-    let new_value = (old_value & !0xFF) | 0xCC;
+    <rs-kwd>let</rs-kwd> <rs-sym>old_value</rs-sym> = <rs-sym>ptrace</rs-sym>::<rs-fn>read</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>)?;
+    <rs-com>// set the first byte to 0xCC</rs-com>
+    <rs-com>// 0xCC is the opcode for the INT3 system interrupt instruction.</rs-com>
+    <rs-kwd>let</rs-kwd> <rs-sym>new_value</rs-sym> = (<rs-sym>old_value</rs-sym> & !<rs-num>0xFF</rs-num>) | <rs-num>0xCC</rs-num>;
 
-    ptrace::write(child_pid, breakpoint_address, new_value)?;
+    <rs-sym>ptrace</rs-sym>::<rs-fn>write</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>, <rs-sym>new_value</rs-sym>)?;
         </pre></code>
 
         <p>
@@ -336,13 +362,13 @@
         </p>
 
         <code><pre>
-    // continue execution and wait until we hit the system interrupt.
-    ptrace::cont(child_pid, None)?;
-    loop {
-        let status = waitpid(child_pid, None)?;
+    <rs-com>// continue execution and wait until we hit the system interrupt.</rs-com>
+    <rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
+    <rs-kwd>loop</rs-kwd> {
+        <rs-kwd>let</rs-kwd> <rs-sym>status</rs-sym> = <rs-fn>waitpid</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
 
-        if let WaitStatus::Stopped(_, Signal::SIGTRAP) = status {
-            break;
+        <rs-kwd>if</rs-kwd> <rs-kwd>let</rs-kwd> <rs-sym>WaitStatus</rs-sym>::<rs-sym>Stopped</rs-sym>(<rs-sym>_</rs-sym>, <rs-sym>Signal</rs-sym>::<rs-sym>SIGTRAP</rs-sym>) = <rs-sym>status</rs-sym> {
+            <rs-kwd>break</rs-kwd>;
         }
     }
         </pre></code>
@@ -353,7 +379,7 @@
         </p>
 
         <code><pre>
-    println!("Breakpoint hit!");
+    <rs-fn>println!</rs-fn>(<rs-str>"Breakpoint hit!"</rs-str>);
         </pre></code>
 
         <p>
@@ -363,66 +389,66 @@
         </p>
 
         <code><pre>
-    // restore the instruction
-    ptrace::write(child_pid, breakpoint_address, old_value)?;
+    <rs-com>// restore the instruction</rs-com>
+    <rs-sym>ptrace</rs-sym>::<rs-fn>write</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>, <rs-sym>old_value</rs-sym>)?;
         </pre></code>
 
         <p>And move the instruction pointer back by one step, so we can re-execute the restored instruction.</p>
 
         <code><pre>
-    // move the instruction pointer back one step
-    let mut regs = ptrace::getregs(child_pid)?;
-    regs.rip -= 1;
-    ptrace::setregs(child_pid, regs)?;
+    <rs-com>// move the instruction pointer back one step</rs-com>
+    <rs-kwd>let</rs-kwd> <rs-kwd>mut</rs-kwd> <rs-sym>regs</rs-sym> = <rs-sym>ptrace</rs-sym>::<rs-fn>getregs</rs-fn>(<rs-sym>child_pid</rs-sym>)?;
+    <rs-sym>regs</rs-sym>.<rs-sym>rip</rs-sym> -= <rs-num>1</rs-num>;
+    <rs-sym>ptrace</rs-sym>::<rs-fn>setregs</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>regs</rs-sym>)?;
         </pre></code>
 
         <p>And continue execution.</p>
 
         <code><pre>
-    ptrace::cont(child_pid, None)?;
+    <rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
         </pre></code>
 
         <p>You can refactor this into it's own little utility function to make things easier. Here is mine:</p>
 
         <code><pre>
-    fn wait_until_addr(child_pid: Pid, breakpoint_address: *mut c_void) -> Result<(), Box<dyn std::error::Error>> {
-        let old_value = ptrace::read(child_pid, breakpoint_address)?;
-        // set the first byte to 0xCC
-        // 0xCC is the opcode for the INT3 system interrupt instruction.
-        let new_value = (old_value & !0xFF) | 0xCC;
+    <rs-kwd>fn</rs-kwd> <rs-fn>wait_until_addr</rs-fn>(<rs-sym>child_pid</rs-sym>: <rs-sym>Pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>: *<rs-kwd>mut</rs-kwd> <rs-sym>c_void</rs-sym>) -> <rs-sym>Result</rs-sym><(), <rs-sym>Box</rs-sym>&lt;<rs-kwd>dyn</rs-kwd> <rs-sym>std</rs-sym>::<rs-sym>error</rs-sym>::<rs-sym>Error</rs-sym>&gt;> {
+        <rs-kwd>let</rs-kwd> <rs-sym>old_value</rs-sym> = <rs-sym>ptrace</rs-sym>::<rs-fn>read</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>)?;
+        <rs-com>// set the first byte to 0xCC</rs-com>
+        <rs-com>// 0xCC is the opcode for the INT3 system interrupt instruction.</rs-com>
+        <rs-kwd>let</rs-kwd> <rs-sym>new_value</rs-sym> = (<rs-sym>old_value</rs-sym> & !<rs-num>0xFF</rs-num>) | <rs-num>0xCC</rs-num>;
 
-        ptrace::write(child_pid, breakpoint_address, new_value)?;
+        <rs-sym>ptrace</rs-sym>::<rs-fn>write</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>, <rs-sym>new_value</rs-sym>)?;
 
-        // continue execution and wait until we hit the system interrupt.
-        ptrace::cont(child_pid, None)?;
-        loop {
-            let status = waitpid(child_pid, None)?;
+        <rs-com>// continue execution and wait until we hit the system interrupt.</rs-com>
+        <rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
+        <rs-kwd>loop</rs-kwd> {
+            <rs-kwd>let</rs-kwd> <rs-sym>status</rs-sym> = <rs-fn>waitpid</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
 
-            if let WaitStatus::Stopped(_, Signal::SIGTRAP) = status {
-                break;
+            <rs-kwd>if</rs-kwd> <rs-kwd>let</rs-kwd> <rs-sym>WaitStatus</rs-sym>::<rs-sym>Stopped</rs-sym>(<rs-sym>_</rs-sym>, <rs-sym>Signal</rs-sym>::<rs-sym>SIGTRAP</rs-sym>) = <rs-sym>status</rs-sym> {
+                <rs-kwd>break</rs-kwd>;
             }
         }
 
-        // restore the instruction
-        ptrace::write(child_pid, breakpoint_address, old_value)?;
+        <rs-com>// restore the instruction</rs-com>
+        <rs-sym>ptrace</rs-sym>::<rs-fn>write</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>breakpoint_address</rs-sym>, <rs-sym>old_value</rs-sym>)?;
 
-        // move the instruction pointer back one step
-        let mut regs = ptrace::getregs(child_pid)?;
-        regs.rip -= 1;
-        ptrace::setregs(child_pid, regs)?;
+        <rs-com>// move the instruction pointer back one step</rs-com>
+        <rs-kwd>let</rs-kwd> <rs-kwd>mut</rs-kwd> <rs-sym>regs</rs-sym> = <rs-sym>ptrace</rs-sym>::<rs-fn>getregs</rs-fn>(<rs-sym>child_pid</rs-sym>)?;
+        <rs-sym>regs</rs-sym>.<rs-sym>rip</rs-sym> -= <rs-num>1</rs-num>;
+        <rs-sym>ptrace</rs-sym>::<rs-fn>setregs</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>regs</rs-sym>)?;
 
-        Ok(())
+        <rs-fn>Ok</rs-fn>(())
     }
         </pre></code>
 
         <p>Then you can use it like this:</p>
 
         <code><pre>
-    wait_until_addr(child_pid, my_address_i_want_to_stop_at)?;
+    <rs-fn>wait_until_addr</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>my_address_i_want_to_stop_at</rs-sym>)?;
 
-    // do something
+    <rs-com>// do something</rs-com>
 
-    ptrace::cont(child_pid, None)?;
+    <rs-sym>ptrace</rs-sym>::<rs-fn>cont</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-fn>None</rs-fn>)?;
         </pre></code>
 
         <h2>symbols</h2>
@@ -436,22 +462,22 @@
         <p>
             You can use the <code><a href="http://crates.io/crates/elf">elf</a></code> Rust crate to parse ELF files. I
             won't get into implementation details here but let's say we now magically have the symbol table. A mapping
-            of <code>u64</code> addresses to <code>String</code> names.
+            of <code><rs-sym>u64</rs-sym></code> addresses to <code><rs-sym>String</rs-sym></code> names.
         </p>
 
         <p>
-            Remember that small note above? About things being offset by <code>0x5555_5555_4000</code>? We need to keep
+            Remember that small note above? About things being offset by <code><rs-num>0x5555_5555_4000</rs-num></code>? We need to keep
             this in mind when writing our code. But now we should be able to do the following:
         </p>
 
         <code><pre>
-    let rip = ptrace::getregs(child_pid)?.rip - 0x5555_5555_4000;
+    <rs-kwd>let</rs-kwd> <rs-sym>rip</rs-sym> = <rs-sym>ptrace</rs-sym>::<rs-fn>getregs</rs-fn>(<rs-sym>child_pid</rs-sym>)?.<rs-sym>rip</rs-sym> - <rs-num>0x5555_5555_4000</rs-num>;
 
-    // Find the closest function that `rip` could be in.
-    for addr, name in symbol_table.sort_ascending() {
-        if rip > addr {
-            println!("We are inside the function: {name}");
-            break;
+    <rs-com>// Find the closest function that `rip` could be in.</rs-com>
+    <rs-kwd>for</rs-kwd> <rs-sym>addr</rs-sym>, <rs-sym>name</rs-sym> <rs-kwd>in</rs-kwd> <rs-sym>symbol_table</rs-sym>.<rs-fn>sort_ascending</rs-fn>() {
+        <rs-kwd>if</rs-kwd> <rs-sym>rip</rs-sym> > <rs-sym>addr</rs-sym> {
+            <rs-fn>println!</rs-fn>(<rs-str>"We are inside the function: </rs-str>{<rs-sym>name</rs-sym>}<rs-str>"</rs-str>);
+            <rs-kwd>break</rs-kwd>;
         }
     }
         </pre></code>
@@ -459,7 +485,7 @@
         <p>You can also use it to convert symbols to addresses.</p>
 
         <code><pre>
-    wait_until_addr(child_pid, symbol_table.get("my_add_function"))?;
+    <rs-fn>wait_until_addr</rs-fn>(<rs-sym>child_pid</rs-sym>, <rs-sym>symbol_table</rs-sym>.<rs-fn>get</rs-fn>(<rs-str>"my_add_function"</rs-str>))?;
         </pre></code>
 
         <h2>conclusion</h2>
