@@ -1,3 +1,6 @@
+In Rust `&*x` is a reborrow, not a dereference followed by a borrow.
+I think C-style borrowing syntax is a mistake, but I don't have any better ideas.
+
 It doesn't need to be perfect. Neither do you.
 
 Comparing high-level languages to low-level languages is apples to oranges.
