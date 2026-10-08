@@ -5,11 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>slog what is pin</title>
-    <style>
-        body {
-            background-color: beige;
-        }
-    </style>
 </head>
 
 <body>
@@ -161,6 +156,8 @@ error[E0505]: cannot move out of `my_struct` because it is borrowed
     </code></pre>
 
     <p>The Pin&lt;&mut Self&gt; just means "hey if you're going to poll the future, please don't move it.". You can imagine it would be pretty bad if a future got half-way through execution, with active references into itself, and then suddenly got moved to another place in memory.</p>
+
+    <a href="https://goals.rust-lang.org/2026/move-trait.html">Pin might become obsolete in the future.</a>
 </body>
 
 </html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog favourites</title>
+    <style>
+        body {
+            background-color: black;
+            color: white;
+            font-family: Verdana, Geneva, Tahoma, sans-serif;
+            margin: 8%;
+        }
+
+        a:hover {
+            background: linear-gradient(to right, #6666ff, #0099ff, #00ff00, #ff3399, #6666ff);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            animation: rainbow_animation 1s ease-in-out infinite;
+            background-size: 400% 100%;
+            filter: drop-shadow(red 0px 0px 2px);
+        }
+
+        a:active {
+            filter: drop-shadow(blue 0px 0px 2px);
+        }
+
+        @keyframes rainbow_animation {
+
+            0%,
+            100% {
+                background-position: 0 0;
+            }
+
+            50% {
+                background-position: 100% 0;
+            }
+        }
+    </style>
+    <style>
+        article,
+        footer {
+            background-color: lightblue;
+            color: black;
+        }
+
+        star-article {
+            background-color: yellow;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>highlighted articles</h1>
+
+        <p>
+            Articles not written by me that I personally love and would like to share.
+        </p>
+    </header>
+    <nav>
+        <a href="..">go back</a>
+    </nav>
+    <main>
+        <p></p>
+
+        <article>
+            <a href="https://github.com/kanaka/mal/blob/master/process/guide.md">Make A Lisp</a>
+            <p>
+                So you want to write a Lisp interpreter? Welcome!
+            </p>
+        </article>
+
+        <article>
+            <a href="https://os.phil-opp.com/">Writing an OS in Rust</a>
+            <p>
+                This blog series creates a small operating system in the Rust programming language.
+            </p>
+        </article>
+
+        <article>
+            <a href="https://www.youtube.com/watch?v=IroPQ150F6c">YT: Andrew Kelley - A Practical Guide to Applying Data Oriented Design</a>
+            <p></p>
+        </article>
+
+        <article>
+            <a href="https://karpathy.ai/zero-to-hero.html">Neural Networks: Zero to Hero</a>
+            <p>A course by Andrej Karpathy on building neural networks, from scratch, in code.</p>
+        </article>
+
+        <article>
+            <a href="https://www.youtube.com/watch?v=NxiKlnUtyio">YT: Sam H. Smith - Parsing without ASTs and Optimizing with Sea of Nodes</a>
+            <p></p>
+        </article>
+
+        <article>
+            <a href="https://graemephi.github.io/posts/unique-random-numbers/">Generating Unique Random Numbers</a>
+            <p>
+                Generating random numbers that don't repeat.
+            </p>
+        </article>
+    </main>
+</body>
+
+</html>

@@ -199,6 +199,10 @@
             way with the <code><rs-fn>clobber_abi</rs-fn>(<rs-str>"C"</rs-str>)</code> flag. Let's change the stack pointer to be a multiple of 16 too.
         </p>
 
+        <p>
+            One thing to note, if the `nostack` flag is unset (which it is) the stack pointer is guaranteed to be aligned before entering the asm! block. Since <code>rsp</code> is already a multiple of 16, as long as we subtract it by a multiple of 16 it will stay aligned.
+        </p>
+
         <code><pre>
 <rs-kwd>unsafe</rs-kwd> {
     <rs-kwd>extern</rs-kwd> <rs-str>"C"</rs-str> <rs-kwd>fn</rs-kwd> <rs-fn>my_function</rs-fn>() {}
