@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog ptrs and pages</title>
+    <style>
+        html {
+            font-family: sans-serif;
+            background-color: #f6f6f6;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        @font-face {
+            font-family: 'JetBrains Mono';
+            src: url(assets/ptrs-and-pages/JetBrainsMono-Medium.woff2);
+        }
+
+        code,
+        pre {
+            overflow-y: scroll;
+            font-family: 'JetBrains Mono';
+            font-size: 0.875em;
+        }
+
+        h1,
+        h2 {
+            margin-top: 1em;
+            font-family: 'Georgia', 'Times', serif;
+            line-height: 1.3;
+            text-shadow: 1px 1px #8c93a8;
+            font-weight: normal;
+            color: black;
+            margin-bottom: 0.25em;
+            border-bottom: 1px solid #a2a9b1;
+        }
+
+        h1 {
+            font-size: 1.8em;
+
+        }
+
+        h2 {
+            font-size: 1.5em;
+        }
+
+        p {
+            margin: 0.5em 0;
+            font-size: 0.875em;
+            line-height: 1.6;
+        }
+
+        a {
+            color: #0645ad;
+            text-decoration: none;
+        }
+
+        a:active {
+            color: #faa700;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        :target {
+            animation-name: highlight;
+            animation-duration: 1s;
+        }
+
+        @keyframes highlight {
+            from {
+                background-color: #f0f0ff;
+            }
+
+            to {
+                background-color: transparent;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <style>
+        #base {
+            position: fixed;
+            background-color: #fbfbfb;
+            background-image: linear-gradient(to bottom, #ffffff 50%, #f6f6f6 100%);
+            background-position: bottom left;
+            height: 5em;
+            width: 100%;
+            z-index: -1;
+        }
+    </style>
+    <div id="base"></div>
+    <div style="display: flex;">
+        <style>
+            #side-panel-space {
+                padding: 11em;
+                padding-right: 0;
+            }
+
+            #side-panel {
+                position: fixed;
+                width: 11em;
+                margin-left: 1em;
+                height: 100%;
+                overflow: auto;
+            }
+
+            @media (orientation: portrait) {
+                #side-panel-space {
+                    display: none;
+                }
+
+                #side-panel {
+                    display: none;
+                }
+            }
+
+            @media (orientation:landscape) {
+                main {
+                    margin: 1.5em 0 0 1.5em;
+                }
+            }
+        </style>
+        <div id="side-panel-space"></div>
+        <div id="side-panel">
+            <style>
+                #jdev-logo {
+                    background-position: center center;
+                    background-repeat: no-repeat;
+                    background-image: url(assets/ptrs-and-pages/jdev.png);
+                    width: 10em;
+                    height: 160px;
+                }
+            </style>
+            <div id="jdev-logo"></div>
+            <style>
+                #links {
+                    font-size: 0.75em;
+                    margin: 0 0.6em 0 0.7em;
+                    padding: 0.25em 0;
+                    line-height: 1.6;
+                }
+
+                #links a:active {
+                    color: #0645ad;
+                }
+
+                #links a:visited {
+                    color: #0b0080;
+                }
+
+                #links h3 {
+                    color: #54595d;
+
+                    background-image: linear-gradient(to right, rgba(200, 204, 209, 0) 0, #c8ccd1 33%, #c8ccd1 66%, rgba(200, 204, 209, 0) 100%);
+                    background-position: center bottom;
+                    background-repeat: no-repeat;
+                    background-size: 100% 1px;
+
+                    padding: 0.5em 0;
+                    margin: 0.5em 0 0.5em 0;
+                    font-size: 1em;
+                    font-weight: normal;
+                    cursor: default;
+                }
+
+                #links ul {
+                    padding-left: 1.5em;
+                }
+
+                #links ol {
+                    padding-left: 0.5em;
+                }
+
+                #links ol ol {
+                    padding-left: 0.5em;
+                }
+
+                #links ol {
+                    counter-reset: item;
+                    list-style: none;
+                }
+
+                #links ol li {
+                    counter-increment: item;
+                }
+
+                #links ol li::before {
+                    content: counters(item, ".") ". ";
+                }
+            </style>
+            <nav id="links">
+                <a href="..">Go Back</a>
+
+                <h3>Contents</h3>
+                <ol>
+                    <li><a href="#segmented-memory">Segmented Memory</a>
+                        <ol>
+                            <li><a href="#segmented-memory/real-mode">
+                                    Real-mode</a></li>
+                            <li><a href="#segmented-memory/protected-mode">
+                                    Protected mode</a></li>
+                        </ol>
+                    </li>
+                    <li><a href="#paged-memory">Paged Memory</a>
+                        <ol>
+                            <li><a href="#paged-memory/protected-mode">
+                                    Protected mode</a>
+                                <ol>
+                                    <li><a href="#paged-memory/protected-mode/pae">
+                                            PAE</a>
+                                    </li>
+                                </ol>
+                            </li>
+                            <li><a href="#paged-memory/long-mode">
+                                    Long mode</a></li>
+                            <li><a href="#paged-memory/recursive-mapping">
+                                    Recursive Mapping</a></li>
+                        </ol>
+                    <li><a href="#where-do-we-go-from-here???">Where Do We Go From Here???</a></li>
+                    </li>
+                </ol>
+
+                <h3>Resources</h3>
+                <ul>
+                    <li><a href="https://wiki.osdev.org/X86_Paging">X86 Paging - osdev.org (obviously)</a></li>
+                    <li><a href="https://os.phil-opp.com/">Make an OS in Rust</a></li>
+                    <li><a href="https://cirosantilli.com/x86-paging">x86 Paging Tutorial</a></li>
+                </ul>
+
+                <h3>Contact Me</h3>
+                <ul>
+                    <li><a href="mailto:johnnycambodia09@gmail.com">@email</a></li>
+                </ul>
+
+                <footer>
+                    <p><sub>Made with love, html, and css.</sub></p>
+                </footer>
+            </nav>
+        </div>
+
+        <style>
+            main {
+                background-color: white;
+                padding: 1.25em 1.5em 1.5em 1.5em;
+                border: 1px solid #a7d7f9;
+            }
+
+            main h1 a,
+            main h2 a,
+            main h3 a {
+                color: black;
+            }
+
+
+            main ul,
+            main ol {
+                font-size: calc(1em * 0.875);
+            }
+        </style>
+        <main>
+            <h1>Pointer Tagging and Page Tables on x86</h1>
+            <br>
+            <p>What even is a pointer? What happens in the CPU when I make a memory access? That's quite a long story, let me tell you.</p>
+
+            <p>A simplified high-level overview of memory in x86. Suggestions or corrections? <a href="mailto:johnnycambodia09@gmail.com">Email me!</a></p>
+
+            <style>
+                #toc {
+                    display: inline-block;
+                    border: 1px solid #a2a9b1;
+                    background-color: #f8f9fa;
+                    padding: 1em 1em;
+                    margin: 1.5em 1.5em;
+                    font-size: calc(1em * 0.875);
+                }
+
+                #toc ol {
+                    margin: 0.3em 0;
+                    padding: 0 1.5em 0 0;
+                    font-size: 95%;
+                    line-height: 1.6;
+                }
+
+                #toc ol ol {
+                    padding-left: 1em;
+                }
+
+                #toc ol {
+                    counter-reset: item;
+                    list-style: none;
+                }
+
+                #toc ol li {
+                    counter-increment: item;
+                }
+
+                #toc ol li::before {
+                    content: counters(item, ".") ". ";
+                }
+            </style>
+            <nav id="toc">
+                <details open>
+                    <summary>
+                        <h2 style="all:unset; font-weight: bold;">Contents</h2>
+                    </summary>
+                    <ol>
+                        <li><a href="#segmented-memory">Segmented Memory</a>
+                            <ol>
+                                <li><a href="#segmented-memory/real-mode">
+                                        Real-mode</a></li>
+                                <li><a href="#segmented-memory/protected-mode">
+                                        Protected mode</a></li>
+                            </ol>
+                        </li>
+                        <li><a href="#paged-memory">Paged Memory</a>
+                            <ol>
+                                <li><a href="#paged-memory/protected-mode">
+                                        Protected mode</a>
+                                    <ol>
+                                        <li><a href="#paged-memory/protected-mode/pae">
+                                                PAE</a>
+                                        </li>
+                                    </ol>
+                                </li>
+                                <li><a href="#paged-memory/long-mode">
+                                        Long mode</a></li>
+                                <li><a href="#paged-memory/recursive-mapping">
+                                        Recursive Mapping</a></li>
+                            </ol>
+                        <li><a href="#where-do-we-go-from-here???">Where Do We Go From Here???</a></li>
+                        </li>
+                    </ol>
+                </details>
+            </nav>
+
+            <h2 id="segmented-memory"><a href="#segmented-memory">Segmented Memory</a></h2>
+
+            <p>In the Paleolithic Era (40 years ago) computers had a problem, and that problem was processes. If I have multiple processes running at the same time, and they all try to share the same memory, it gets to become a bit of dumpster fire quite quickly. What was needed was a way to chunk up memory into pieces and to allocate those pieces to each process.</p>
+
+            <p>Enter, memory segmentation! How memory segmentation works is quite simple. You have these memory segments, defined by their base address (where they start) and their size (how big). In x86 there are 6 memory segments: code, data, stack, extra, G, and F. Each memory segment gets a register CS, DS, SS, ES, GS, FS.</p>
+
+            <p>The function of these registers is dependent on the operating mode of the CPU. There are three modes in x86: real-mode, protected mode, and long mode. Real-mode is an ancient mode used when 16-bit was still the norm, protected mode is old but slightly less old and used for 32-bit, finally, long-mode is the what we all use today, and it is 64-bit. Real-mode and protected mode can use memory segmentation, while long mode and protected mode can use paging.</p>
+
+            <p>Paging is in its own section below, which we will get to (be patient!). Here, I will explain memory segmentation in both real-mode and protected mode. They are both very similar but differ in how memory segments are defined.</p>
+
+            <h3 id="segmented-memory/real-mode"><a href="#segmented-memory/real-mode">Real-mode</a></h3>
+
+            <p>In real-mode each memory segment has a fixed size, 64KB, and the start of each memory segment is stored in the segment registers (CS,DS,SS,etc.). Whenever the CPU tries to do a memory access, that access address is offset by the base address of a memory segment. The type of operation you're performing changes the memory segment that the CPU will offset by.</p>
+
+            <p>If the CPU tries to pop from the stack, it takes the stack pointer as the lower 16-bits of a 20-bit address, and the stack segment register (SS) as the upper 16-bits of a 20-bit address, then adds them to get the effective address.</p>
+
+            <p>Because the offset into the memory segment is treated as the lower 16-bits of a 20-bit address, and the segment registers are treated as the upper 16-bits of a 20-bit address; Real-mode, despite being 16-bit, can address up to 20-bits or 1MB.</p>
+
+            <p>The OS swaps out these segment registers depending on the currently executing process. The same address can mean different things to different processes because they have different values in the segment registers.</p>
+
+            <p>Note that real-mode doesn't prevent segments from overlapping and doesn't stop processes from overwriting each others memory!</p>
+
+            <h3 id="segmented-memory/protected-mode"><a href="#segmented-memory/protected-mode">Protected mode</a></h3>
+
+            <p>Unlike real-mode, protected mode doesn't lock you into 64KB segments, and allows each segment to have any size and/or different permissions (like read but not write) which is why it's called protected mode, it enforces permissions that protect you! If you try to violate these permissions, you'll get a segmentation fault or segfault.</p>
+
+            <p>Instead of storing the base address of each segment in the segment registers, in protected mode the segment registers contain an index into a list of "Segment Descriptors". Each segment descriptor contains the start of a segment and its size, followed by some permission bits that tell you what you're allowed to do with it.</p>
+
+            <p>There are actually two lists: the "Global Descriptor Table" (GDT) and "Local Descriptor Table" (LDT). What's the difference? Well the GDT isolates memory between the OS and the application, while the LDT isolates memory between threads. The segment descriptor tables are just structs in memory. You initialize the struct in memory somewhere, then you give the CPU a pointer to its location by setting the LDTR/GDTR registers (LDT Register/GDT Register) with the the LGDT/LLDT instructions (Load GDT/Load LDT). Then when the CPU wants to know where something is, it reads the descriptor tables that the LDTR/GDTR hidden registers point to.</p>
+
+            <p>In protected mode, the segment base address is 32-bit. Unlike real-mode, instead of having to add the upper 16-bits of a 20-bit base address with the lower 16-bits of a 20-bit offset, the 32-bit base address and 32-bit offset are simply added together to get the effective address. This means protected mode can address up to 32-bits or 4GB.</p>
+
+            <p>Now, instead of modifying the base address in the segment registers, the OS modifies the indexes in the segment registers and the descriptor tables in memory.</p>
+
+            <h2 id="paged-memory"><a href="#paged-memory">Paged Memory</a></h2>
+
+            <p>With paging, memory is partitioned into 4KB blocks called pages. They don't have to be 4KB though, some processors allow for "huge pages" where some pages may be 4MB or even 1GB.</p>
+
+            <p>Each process gets its own paged address space that no other process can see, called virtual memory. With virtual memory each process can be in its own isolated environment. Virtual memory pages are mapped to physical memory pages by the OS using a structure called a page table. Page tables, despite the name, are actually trees.</p>
+
+            <h3 id="paged-memory/protected-mode"><a href="#paged-memory/protected-mode">Protected mode (32-bit)</a></h3>
+
+            <p>In protected mode, the page table has two levels. The page directory entry (PDE) is the topmost level, it is essentially a list of pointers to page table entries, alongside some access bits and various flags. A page table entry (PTE) is essentially a list of pointers to the actual page, alongside some more access bits and various flags. Together they form a tree-like structure with a depth of 2. Each table entry contains 1024 4-byte (32-bit) items, making each table 4KB big.</p>
+
+            <p>Consult the amazing diagram.</p>
+
+            <code><pre>
+                         ┌──────────────────────┐
+                         │ Page Directory Entry │
+                         └──────────────────────┘
+                        /           │            \
+    ┌──────────────────┐   ┌──────────────────┐
+    │ Page Table Entry │   │ Page Table Entry │   ...
+    └──────────────────┘   └──────────────────┘
+       |        |     \
+    ┌──────┐ ┌──────┐ ┌──────┐
+    │ Page │ │ Page │ │ Page │   ...
+    └──────┘ └──────┘ └──────┘
+            </pre></code>
+
+            <p>Now we can look at the structure of a 32-bit pointer.</p>
+
+            <code><pre>
+    ┌───────────┬───────────┬────────┐
+    │ PDE Index │ PTE Index │ Offset │
+    └───────────┴───────────┴────────┘
+    ├───────────┼───────────┼────────┤
+       10-bit      10-bit     12-bit
+            </pre></code>
+
+            <p>When the CPU wants to translate a virtual address into a physical address. It first indexes into the PDE using the PDE index, which gives it a pointer to the PTE. Then it indexes into the PTE using the PTE index, which gives it a pointer to the page. Then it offsets into that page using the page offset, to get the exact byte you're looking for. If the permission bits are violated or the page does not exist, the CPU will throw a segfault, which the OS will have to catch. We still call it segfault even though we're using pages instead of segments, this is mainly just a vestige of the past.</p>
+
+            <p>The page table indexes are all 10 bits because each level is a list of 1024 entries. 2<sup>10</sup> = 1024.</p>
+
+            <p>The OS informs the CPU about the location of the page table through the CR3 register (control 3), which holds a pointer to the PDE. When switching between process address spaces, the OS changes the CR3 register to point to a different table. Additionally, the OS may need to flush caches or use the invlpg instruction to invalidate pages.</p>
+
+            <h4 id="paged-memory/protected-mode/pae">Physical Address Extension (PAE)</h4>
+
+            <p>If the CPU supports it and Physical Address Extension (PAE) is enabled, an additional level is added above the PDE: the Page Directory Pointer Table (PDPT) is a list of 4 64-bit entries, making it 32 bytes in size. The PDE and PTE are now lists of 512 64-bit entries, making them still 4KB in size.</p>
+
+            <p>With PAE enabled, the virtual address space is still 4GB but you can now have up to 4PiB of physical address space.</p>
+
+            <h3 id="paged-memory/long-mode"><a href="#paged-memory/long-mode">Long mode (64-bit)</a></h3>
+
+            <p>Long mode works in almost exactly the same way as protected mode, except a few things:</p>
+
+            <ul>
+                <li>CR3 is now 64-bits big instead of 32-bits</li>
+                <li>PAE is required to be on</li>
+            </ul>
+
+            <p>Alongside PDPT, PDE, and PTE, there is a fourth page table level, Page Map Level 4 (PML4). Additionally, if the processor supports it and it is enabled, you can have a fifth page table level, PML5. Every level is now a list of 512 64-bit entries, making them all 4KB.</p>
+
+            <p>Consult the amazing diagram for 4 levels of paging.</p>
+
+            <code><pre>
+              ┌──────┐
+              │ PML4 │ <- 512 entries, each 64-bit (4KB)
+              └──────┘
+            /    |    \
+              ┌──────┐
+        ...   │ PDPT │   ...
+              └──────┘
+            /    |    \
+              ┌─────┐
+        ...   │ PDE │   ...
+              └─────┘
+            /    |    \
+              ┌─────┐
+        ...   │ PTE │   ...
+              └─────┘
+            /    |    \
+     ┌──────┐ ┌──────┐ ┌──────┐
+     │ Page │ │ Page │ │ Page │   ...
+     └──────┘ └──────┘ └──────┘
+            </pre></code>
+
+            <p>Now we can look at the structure of a 64-bit pointer for 4 levels of paging. Each page table index is now 9-bit, because each level has 512 entries and 2<sup>9</sup> = 512.</p>
+
+            <code><pre>
+    ┌───────┬───────┬───────┬───────┬───────┬────────┐
+    │  ???  │ PML4  │ PDPT  │  PDE  │  PTE  │ Offset │
+    └───────┴───────┴───────┴───────┴───────┴────────┘
+    ├───────┼───────┼───────┼───────┼───────┼────────┤
+     16-bit   9-bit   9-bit   9-bit   9-bit   12-bit
+            </pre></code>
+
+            <p>But... now we have all this empty space in the upper 16-bits of our pointer. Turns out, 64-bit pointers in x86 just have empty space at the top of them, and of course, we can use this empty space! This is exactly how pointer tagging works. But there are some caveats, the CPU needs our pointer to be "canonicalized" before it will let us dereference it, so we can put whatever data we want in the upper 16-bits as long as we canonicalize the pointer before accessing the data at the end of it.</p>
+
+            <p>In x86 pointer is canonical if its upper 16-bits are set to either all 0s or all 1s.</p>
+
+            <p>All zeroes</p>
+            <code><pre>
+    *(ptr & !(0xffff << 16))
+            </pre></code>
+
+            <p>Or all ones</p>
+            <code><pre>
+    *(ptr |  (0xffff << 16))
+            </pre></code>
+
+            <p>On a 5-level paging scheme the upper 7-bits are unused.</p>
+
+            <h3 id="paged-memory/recursive-mapping">Recursive Mapping</h3>
+
+            <p>The OS exists in a virtual address space too, and it needs to map the page tables into its virtual address space to be able to modify them. There's a neat trick to do this easily by making the top-level page table point to itself.</p>
+
+            <p>Imagine we have a 4-level paging scheme, where the last entry of PML4 (the entry at index 511) points to itself.</p>
+
+            <p>A pointer to a byte in a specific page would look like this.</p>
+
+            <code><pre>
+    ┌───────┬───────┬───────┬───────┬────────┐
+    │ PML4  │ PDPT  │  PDE  │  PTE  │ Offset │
+    └───────┴───────┴───────┴───────┴────────┘
+            </pre></code>
+
+            <p>The CPU indexes into PML4, then PDPT, then PDE, then PTE, then offsets into the page.</p>
+
+            <p>But look what happens when we do this:</p>
+
+            <code><pre>
+    ┌───────┬───────┬───────┬───────┬────────┐
+    │  511  │ PML4  │ PDPT  │  PDE  │ Offset │
+    └───────┴───────┴───────┴───────┴────────┘
+            </pre></code>
+
+            <p>The CPU indexes into the 511th entry of PML4, which is PML4, then it indexes into PML4 again, then PDPT, then PDE, then offsets into PTE. We can now access and modify a PTE!</p>
+
+            <p>If we want to access a PDE we just do it again.</p>
+
+            <code><pre>
+    ┌───────┬───────┬───────┬───────┬────────┐
+    │  511  │  511  │ PML4  │ PDPT  │ Offset │
+    └───────┴───────┴───────┴───────┴────────┘
+            </pre></code>
+
+            <p>The CPU indexes into the 511th entry of PML4, which is PML4, then it indexes into the 511th entry of PML4, which is PML4, then it indexes into PML4, then PDPT, then offsets into PDE.</p>
+
+            <p>This only really works if every page table level is in the same format, which it is on long mode since every page is 4KB of 512 64-bit entries.</p>
+
+            <h2 id="where-do-we-go-from-here???">Where Do We Go From Here???</h2>
+
+            <p>
+                I wrote this because while implementing an OS following <a href="https://os.phil-opp.com/">this blog post</a>, I found a lot of the documentation on x86 paging was too specific. I just wanted a nice high level overview of what paging even is before getting into all the nitty gritty details of registers, and structs, and bit flags I need to flip.
+            </p>
+
+            <p>But, if you're up for the challenge, I think you're ready for all those nitty gritty details now. You'll want to be looking at <a href="https://wiki.osdev.org/X86_Paging">osdev.org - X86 Paging</a>, you'll notice the website is eerily similar (hehe). Additionally, there's this <a href="https://cirosantilli.com/x86-paging">x86 Paging Tutorial</a> which I have not read but on skimming seems like it may be useful to you.</p>
+
+            <p>Good luck!</p>
+        </main>
+    </div>
+</body>
+
+</html>
