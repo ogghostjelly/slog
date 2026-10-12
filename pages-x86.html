@@ -197,7 +197,7 @@
                 }
             </style>
             <nav id="links">
-                <a href="..">Go Back</a>
+                <a href="index.html">Go Back</a>
 
                 <h3>Contents</h3>
                 <ol>
@@ -266,7 +266,7 @@
             }
         </style>
         <main>
-            <h1>Pointer Tagging and Page Tables on x86</h1>
+            <h1>Page Tables on x86</h1>
             <br>
             <p>What even is a pointer? What happens in the CPU when I make a memory access? That's quite a long story, let me tell you.</p>
 
@@ -369,7 +369,7 @@
 
             <p>Instead of storing the base address of each segment in the segment registers, in protected mode the segment registers contain an index into a list of "Segment Descriptors". Each segment descriptor contains the start of a segment and its size, followed by some permission bits that tell you what you're allowed to do with it.</p>
 
-            <p>There are actually two lists: the "Global Descriptor Table" (GDT) and "Local Descriptor Table" (LDT). What's the difference? Well the GDT isolates memory between the OS and the application, while the LDT isolates memory between threads. The segment descriptor tables are just structs in memory. You initialize the struct in memory somewhere, then you give the CPU a pointer to its location by setting the LDTR/GDTR registers (LDT Register/GDT Register) with the the LGDT/LLDT instructions (Load GDT/Load LDT). Then when the CPU wants to know where something is, it reads the descriptor tables that the LDTR/GDTR hidden registers point to.</p>
+            <p>There are actually two lists: the "Global Descriptor Table" (GDT) and "Local Descriptor Table" (LDT). What's the difference? Well the GDT isolates memory between the OS and the application, while the LDT isolates memory between threads. The segment descriptor tables are just structs in memory. You initialize the struct in memory somewhere, then you give the CPU a pointer to its location by setting LDTR/GDTR (LDT Register/GDT Register) with the the LGDT/LLDT instructions (Load GDT/Load LDT). Then when the CPU wants to know where something is, it reads the descriptor tables that the LDTR/GDTR hidden registers point to.</p>
 
             <p>In protected mode, the segment base address is 32-bit. Unlike real-mode, instead of having to add the upper 16-bits of a 20-bit base address with the lower 16-bits of a 20-bit offset, the 32-bit base address and 32-bit offset are simply added together to get the effective address. This means protected mode can address up to 32-bits or 4GB.</p>
 
@@ -417,11 +417,13 @@
 
             <p>The OS informs the CPU about the location of the page table through the CR3 register (control 3), which holds a pointer to the PDE. When switching between process address spaces, the OS changes the CR3 register to point to a different table. Additionally, the OS may need to flush caches or use the invlpg instruction to invalidate pages.</p>
 
+            <p>Protected mode with paging can address up to 4GB.</p>
+
             <h4 id="paged-memory/protected-mode/pae">Physical Address Extension (PAE)</h4>
 
-            <p>If the CPU supports it and Physical Address Extension (PAE) is enabled, an additional level is added above the PDE: the Page Directory Pointer Table (PDPT) is a list of 4 64-bit entries, making it 32 bytes in size. The PDE and PTE are now lists of 512 64-bit entries, making them still 4KB in size.</p>
+            <p>If the CPU supports it and Physical Address Extension (PAE) is enabled, an additional level is added above the PDE: the Page Directory Pointer Table (PDPT) is a list of 4 64-bit entries, making it 32 bytes in size. The PDE and PTE are now lists of 512 64-bit entries, and are still 4KB in size.</p>
 
-            <p>With PAE enabled, the virtual address space is still 4GB but you can now have up to 4PiB of physical address space.</p>
+            <p>With PAE enabled, the virtual address space is still 4GB but you can now have up to 4PiB (Petabyte!) of physical address space.</p>
 
             <h3 id="paged-memory/long-mode"><a href="#paged-memory/long-mode">Long mode (64-bit)</a></h3>
 
@@ -474,12 +476,12 @@
 
             <p>All zeroes</p>
             <code><pre>
-    *(ptr & !(0xffff << 16))
+    *(ptr & !(0xffff << 48))
             </pre></code>
 
             <p>Or all ones</p>
             <code><pre>
-    *(ptr |  (0xffff << 16))
+    *(ptr |  (0xffff << 48))
             </pre></code>
 
             <p>On a 5-level paging scheme the upper 7-bits are unused.</p>
@@ -520,7 +522,7 @@
 
             <p>The CPU indexes into the 511th entry of PML4, which is PML4, then it indexes into the 511th entry of PML4, which is PML4, then it indexes into PML4, then PDPT, then offsets into PDE.</p>
 
-            <p>This only really works if every page table level is in the same format, which it is on long mode since every page is 4KB of 512 64-bit entries.</p>
+            <p>This only really works if every page table level is in the same format, which it is on long mode since every table is 4KB of 512 64-bit entries.</p>
 
             <h2 id="where-do-we-go-from-here???">Where Do We Go From Here???</h2>
 
