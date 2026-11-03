@@ -1,3 +1,5 @@
+`fcntl` is pronounced f-cunt-l and no one can convince me otherwise.
+
 In Rust `&*x` is a reborrow, not a dereference followed by a borrow.
 I think C-style borrowing syntax is a mistake, but I don't have any better ideas.
 
