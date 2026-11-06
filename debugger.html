@@ -135,9 +135,9 @@
         </p>
 
         <p>
-            So now we can execute a program. Note the presence of that <code><rs-fn>unreachable!</rs-fn></code>
-            statement. Since <code><rs-fn>exec</rs-fn></code> replaces the entire process, any code after a call to it will never be
-            run!</p>
+            Since <code><rs-fn>execv</rs-fn></code> replaces the process, any code after a call to it will never be
+            run! (unless it fails, which it might, but lets ignore that possibility)
+        </p>
 
         <h3>fork</h3>
 

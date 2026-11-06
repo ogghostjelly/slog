@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>slog what is variance for 500</title>
+    <style>
+        body {
+            max-width: 720px;
+            margin: 40px auto;
+            padding: 0 16px;
+
+            font-size: 16px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+            background-color: #1c1c1c;
+            color: #dadada;
+        }
+
+        h2 a {
+            color: #6c6c6c;
+            text-decoration: none;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+
+        code {
+            background-color: #232323;
+            padding: 2px 4px;
+            border-radius: 4px;
+            white-space: pre;
+        }
+
+        pre {
+            overflow-x: scroll;
+            padding: 8px 24px;
+            background-color: #232323;
+            border-radius: 4px;
+
+            & code {
+                padding: 0;
+            }
+
+            & md-tag {
+                visibility: hidden;
+            }
+
+            &:hover md-tag {
+                visibility: visible;
+            }
+        }
+
+        a {
+            color: #7d69b7;
+        }
+
+        a:hover {
+            color: #a69af9;
+        }
+
+        x-nb {
+            border-radius: 4px;
+            background-color: #192533;
+            display: block;
+            padding: 4px 16px;
+            border: 2px solid transparent;
+
+            &:hover {
+                border: 2px solid #333333;
+            }
+        }
+
+        x-nb-title {
+            color: #0769d5;
+            display: block;
+            margin: 4px;
+        }
+
+        x-nb-title::before {
+            content: '✏ ';
+        }
+
+        rs-kwd {
+            color: #f999cc;
+        }
+
+        rs-sym {
+            color: #55dfdf;
+        }
+
+        rs-lt {
+            color: #c999cc;
+        }
+
+        rs-com {
+            color: #6c6c6c;
+        }
+    </style>
+</head>
+
+<body contenteditable=true spellcheck=false>
+    <h1>what is variance</h1>
+
+    <a contenteditable=false href="index.html">go back</a>
+
+    <p>I brought the markdown viewer to you!</p>
+
+    <h2 id="variance"><a contenteditable=false href="#variance">#</a> Variance</h2>
+
+    <p>We have a function that takes two string slices.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;(<rs-sym>x</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>) {}
+<md-tag>```</md-tag></code></pre>
+
+    <p>and we call that function with a static string and a local string, using some fake syntax I made up for illustrative purposes.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>const</rs-kwd> <rs-sym>long</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = "";
+<rs-kwd>let</rs-kwd> <rs-sym>short</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = <rs-sym>String</rs-sym>::<rs-sym>new</rs-sym>();
+
+<rs-sym>foo</rs-sym>(<rs-sym>long</rs-sym>, <rs-sym>short</rs-sym>);
+<md-tag>```</md-tag></code></pre>
+
+    <p>When resolving the lifetime <rs-lt>'a</rs-lt>, a naive borrow checker would see that <rs-lt>'static</rs-lt> != <rs-lt>'local</rs-lt> and refuse to compile.</p>
+
+    <p>But this is valid code! We'd like the borrow checker to realize that a <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> can fit in places where a <code>&<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym></code> is required.</p>
+
+    <h2 id="covariance"><a contenteditable=false href="#covariance">#</a> Covariance</h2>
+
+    <p>When a lifetime can shrink to fit. <rs-lt>'long</rs-lt> &lt;: <rs-lt>'short</rs-lt>
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;(<rs-sym>x</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>) {}
+<rs-sym>foo</rs-sym>(<rs-sym>long</rs-sym>, <rs-sym>short</rs-sym>);
+<md-tag>```</md-tag></code></pre>
+    <rs-lt>'static</rs-lt> can become <rs-lt>'local</rs-lt> because <rs-lt>'static</rs-lt> is a subtype of <rs-lt>'local</rs-lt>.</p>
+
+    <p>In type theory "is a subtype of" is represented with the sigil <code>&lt;:</code> so <rs-lt>'long</rs-lt> &lt;: <rs-lt>'short</rs-lt>. Its exactly like inheritance. A Cat can do anything an Animal can do because Cat is an Animal. <rs-lt>'long</rs-lt> can do anything <rs-lt>'short</rs-lt> can do because <rs-lt>'long</rs-lt> contains <rs-lt>'short</rs-lt>.</p>
+
+    <p>If a lifetime is a subtype of another lifetime, it's safe to shrink it.</p>
+
+    <h2 id="invariance"><a contenteditable=false href="#invariance">#</a> Invariance</h2>
+
+    <p>When a lifetime cannot change.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;(<rs-sym>x</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>) {
+    *<rs-sym>a</rs-sym> = <rs-sym>b</rs-sym>;
+}
+<rs-com>// Oh no! Setting a 'static to a 'local!</rs-com>
+<rs-sym>foo</rs-sym>(&<rs-kwd>mut</rs-kwd> <rs-sym>long</rs-sym>, <rs-sym>short</rs-sym>)
+<md-tag>```</md-tag></code></pre>
+
+    <p><rs-sym>long</rs-sym> is supposed to live for <rs-lt>'static</rs-lt>, but we just set it to a string that only lives for <rs-lt>'local</rs-lt>! We want the compiler to reject this.</p>
+
+    <p>We want to say "when using &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym>, the lifetime of <rs-sym>T</rs-sym> can't change.". This is called invariance. We say &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is invariant over <rs-sym>T</rs-sym>.</p>
+
+    <p>In our code example, <code>&<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> is invariant over <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code>. The type of <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> is not allowed to fit a <code>&<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym></code>, and the compiler successfully rejects the code.</p>
+
+    <x-nb>
+        <x-nb-title>Borrows are generic</x-nb-title>
+
+        <p>
+            &<rs-sym>T</rs-sym> has two generic parameters, imagine it as <rs-sym>Borrow</rs-sym>&lt;<rs-lt>'a</rs-lt>, <rs-sym>T</rs-sym>&gt;:<br>
+            &<rs-lt>'a</rs-lt> <rs-sym>T</rs-sym> is covariant over <rs-lt>'a</rs-lt> and covariant over <rs-sym>T</rs-sym>. In other words, <rs-lt>'a</rs-lt> can change and <rs-sym>T</rs-sym> can change.
+        </p>
+
+        <p>
+            &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> has two generic parameters, imagine it as <rs-sym>BorrowMut</rs-sym>&lt;<rs-lt>'a</rs-lt>, <rs-sym>T</rs-sym>&gt;:<br>
+            &<rs-lt>'a</rs-lt> <rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is covariant over <rs-lt>'a</rs-lt> but invariant over <rs-sym>T</rs-sym>. In other words, <rs-sym>'a</rs-sym> can change but <rs-sym>T</rs-sym> can't.
+        </p>
+    </x-nb>
+
+    <p>Is this counter-example valid Rust?</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-sym>foo</rs-sym>(&<rs-kwd>mut</rs-kwd> <rs-sym>short</rs-sym>, <rs-sym>long</rs-sym>)
+<md-tag>```</md-tag></code></pre>
+
+    <details>
+        <summary contenteditable=false>Answer</summary>
+        Yes, it is! Even though <rs-sym>short</rs-sym> is behind an unchanging invariant reference (&<rs-kwd>mut</rs-kwd>), <rs-sym>long</rs-sym> is behind a changing covariant reference (&). The covariant <rs-lt>'static</rs-lt> <rs-sym>long</rs-sym> can shrink to fit the invariant <rs-lt>'local</rs-lt> <rs-sym>short</rs-sym>.
+    </details>
+
+    <h2 id="contravariance"><a contenteditable=false href="#contravariance">#</a> Contravariance</h2>
+
+    <p>When a lifetime can grow to fit. <rs-sym>Fn</rs-sym>(<rs-lt>'short</rs-lt>) &lt;: <rs-sym>Fn</rs-sym>(<rs-lt>'long</rs-lt>)</p>
+
+    <p>The opposite of covariance. Only ever used in function parameters.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>(<rs-sym>f</rs-sym>: <rs-kwd>fn</rs-kwd>(<rs-sym>x</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym>)) {}
+<rs-kwd>fn</rs-kwd> <rs-sym>bar</rs-sym>(<rs-sym>x</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym>) {}
+<rs-sym>foo</rs-sym>(<rs-sym>bar</rs-sym>);
+<md-tag>```</md-tag></code></pre>
+
+    <p>If bar can handle a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> then it can handle a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym>.</p>
+
+    <x-nb>
+        <p><rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) -> <rs-sym>U</rs-sym> is contravariant over <rs-sym>T</rs-sym> and covariant over <rs-sym>U</rs-sym></p>
+    </x-nb>
+
+    <h2 id="multiplication-rules"><a contenteditable=false href="#multiplication-rules">#</a> Multiplication Rules</h2>
+
+    <p>In <rs-sym>Fn</rs-sym>(<rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>)) what is the variance of <rs-sym>T</rs-sym>? Variance follows multiplication rules, where covariance = 1, invariance = 0, and contravariance = -1.</p>
+
+    <p>In <rs-sym>Fn</rs-sym>(<rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>)), <rs-sym>T</rs-sym> is contravariant twice: -1 * -1 = 1, <rs-sym>Fn</rs-sym>(<rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>)) is covariant over <rs-sym>T</rs-sym>.</p>
+
+    <h2 id="wtf? fn(&'a ()) -> &'a ()"><a contenteditable=false href="#wtf? fn(&'a ()) -> &'a ()">#</a> WTF? <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> ()) -&gt; &<rs-lt>'a</rs-lt> ()</h2>
+
+    <p>This ones a bit obscure, I've only ever seen this in <rs-sym>std</rs-sym>::<rs-sym>task</rs-sym>::<rs-sym>Context</rs-sym> but I feel the need to explain it anyway.</p>
+
+    <p>If we have the type</p>
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>type</rs-kwd> <rs-sym>F</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; = <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> ()) -&gt; &<rs-lt>'a</rs-lt> ()
+<md-tag>```</md-tag></code></pre>
+
+    <p>The contravariant function argument <code><rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> ())</code> requires that <code><rs-sym>F</rs-sym>&lt;<rs-lt>'short</rs-lt>&gt; &lt;: <rs-sym>F</rs-sym>&lt;<rs-lt>'long</rs-lt>&gt;</code>.</p>
+
+    <p>The covariant return type <code>-&gt; &<rs-lt>'a</rs-lt> ()</code> requires that <code><rs-sym>F</rs-sym>&lt;<rs-lt>'long</rs-lt>&gt; &lt;: <rs-sym>F</rs-sym>&lt;<rs-lt>'short</rs-lt>&gt;</code>.</p>
+
+    <p>Both requirements <code><rs-sym>F</rs-sym>&lt;<rs-lt>'short</rs-lt>&gt; &lt;: <rs-sym>F</rs-sym>&lt;<rs-lt>'long</rs-lt>&gt;</code> and <code><rs-sym>F</rs-sym>&lt;<rs-lt>'long</rs-lt>&gt; &lt;: <rs-sym>F</rs-sym>&lt;<rs-lt>'short</rs-lt>&gt;</code> combine to make <code><rs-sym>F</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;</code> invariant over <code><rs-lt>'a</rs-lt></code>.</p>
+
+    <p>In the source code for <rs-sym>std</rs-sym>::<rs-sym>task</rs-sym>::<rs-sym>Context</rs-sym>:</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>struct</rs-kwd> <rs-sym>Context</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; {
+    <rs-com>...</rs-com>
+    <rs-sym>_marker</rs-sym>: <rs-sym>PhantomData</rs-sym>&lt;<rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> ()) -&gt; &<rs-lt>'a</rs-lt> ()&gt;,
+    <rs-com>...</rs-com>
+}
+<md-tag>```</md-tag></code></pre>
+
+    <p>This makes <rs-sym>Context</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; invariant over <rs-lt>'a</rs-lt>.</p>
+
+    <p>This is almost the same as using <code>*<rs-kwd>mut</rs-kwd> &<rs-lt>'a</rs-lt> ()</code> to force invariance, because *<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is invariant over <rs-sym>T</rs-sym>.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>struct</rs-kwd> <rs-sym>Context</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; {
+    <rs-com>...</rs-com>
+    <rs-sym>_marker</rs-sym>: <rs-sym>PhantomData</rs-sym>&lt;*<rs-kwd>mut</rs-kwd> &<rs-lt>'a</rs-lt> ()&gt;,
+    <rs-com>...</rs-com>
+}
+<md-tag>```</md-tag></code></pre>
+
+    <p>But *<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> affects how auto traits are implemented (e.g <rs-sym>Send</rs-sym>/<rs-sym>Sync</rs-sym>), which is why it's not used.</p>
+
+    <p>If you don't know, an auto-trait is a trait that is automatically implemented for every type only if all of their fields also implement that trait, and *<rs-kwd>mut</rs-kwd> &<rs-lt>'a</rs-lt> () blocks some auto-traits from being implemented. <a contenteditable=false href="https://doc.rust-lang.org/reference/special-types-and-traits.html#auto-traits">See docs.</a></p>
+</body>
+
+</html>

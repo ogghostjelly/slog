@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>slog ptrs and pages</title>
+    <title>slog memory x86</title>
     <style>
         html {
             font-family: sans-serif;
@@ -17,7 +17,7 @@
 
         @font-face {
             font-family: 'JetBrains Mono';
-            src: url(assets/ptrs-and-pages/JetBrainsMono-Medium.woff2);
+            src: url(assets/memory-x86/JetBrainsMono-Medium.woff2);
         }
 
         code,
@@ -134,7 +134,7 @@
                 #jdev-logo {
                     background-position: center center;
                     background-repeat: no-repeat;
-                    background-image: url(assets/ptrs-and-pages/jdev.png);
+                    background-image: url(assets/memory-x86/jdev.png);
                     width: 10em;
                     height: 160px;
                 }
@@ -472,7 +472,7 @@
 
             <p>But... now we have all this empty space in the upper 16-bits of our pointer. Turns out, 64-bit pointers in x86 just have empty space at the top of them, and of course, we can use this empty space! This is exactly how pointer tagging works. But there are some caveats, the CPU needs our pointer to be "canonicalized" before it will let us dereference it, so we can put whatever data we want in the upper 16-bits as long as we canonicalize the pointer before accessing the data at the end of it.</p>
 
-            <p>In x86 pointer is canonical if its upper 16-bits are set to either all 0s or all 1s.</p>
+            <p>In x86 pointer is canonical if bits 63:48 are set to the value of bit 47 (aka sign-extended). Or in other words, its upper 16-bits are set to either all 0s or all 1s.</p>
 
             <p>All zeroes</p>
             <code><pre>
@@ -485,6 +485,8 @@
             </pre></code>
 
             <p>On a 5-level paging scheme the upper 7-bits are unused.</p>
+
+            <p>On Linux, a pointer with its upper bits set to all ones is a pointer in the kernels address space. If you want to do pointer tagging, you should ensure that your upper bits are all zeroes instead.</p>
 
             <h3 id="paged-memory/recursive-mapping">Recursive Mapping</h3>
 
