@@ -472,7 +472,7 @@
 
             <p>But... now we have all this empty space in the upper 16-bits of our pointer. Turns out, 64-bit pointers in x86 just have empty space at the top of them, and of course, we can use this empty space! This is exactly how pointer tagging works. But there are some caveats, the CPU needs our pointer to be "canonicalized" before it will let us dereference it, so we can put whatever data we want in the upper 16-bits as long as we canonicalize the pointer before accessing the data at the end of it.</p>
 
-            <p>In x86 pointer is canonical if bits 63:48 are set to the value of bit 47 (aka sign-extended). Or in other words, its upper 16-bits are set to either all 0s or all 1s.</p>
+            <p>An x86 pointer is canonical if bits 63:48 are set to the value of bit 47 (aka sign-extended). Or in other, much more simpler words, its upper 16-bits are set to either all 0s or all 1s.</p>
 
             <p>All zeroes</p>
             <code><pre>
