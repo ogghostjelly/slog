@@ -148,9 +148,9 @@
 
     <p>Can a <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; become a <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;? Maybe. A list of <rs-sym>Cat</rs-sym>s is basically just a list of <rs-sym>Animal</rs-sym>s. Can a <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) become a <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>)? Maybe not. <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) expects a <rs-sym>Cat</rs-sym>, lets not surprise it with any <rs-sym>Animal</rs-sym>.</p>
 
-    <p><rs-sym>List</rs-sym>&lt;<rs-sym>T</rs-sym>&gt; is covariant over <rs-sym>T</rs-sym> because <code><rs-sym>List</rs-sym>&lt;<rs-sym>A</rs-sym>&gt; &lt;: <rs-sym>List</rs-sym>&lt;<rs-sym>B</rs-sym>&gt;</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With covariance, the subtyping relationship "passes through". <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; &rarr; <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;.</p>
+    <p>We say <rs-sym>List</rs-sym>&lt;<rs-sym>T</rs-sym>&gt; is "covariant" over <rs-sym>T</rs-sym> because <code><rs-sym>List</rs-sym>&lt;<rs-sym>A</rs-sym>&gt; &lt;: <rs-sym>List</rs-sym>&lt;<rs-sym>B</rs-sym>&gt;</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With covariance, the subtyping relationship "passes through". <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; &rarr; <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;.</p>
 
-    <p><rs-kwd>fn</rs-kwd>(<rs-sym>T</rs-sym>) is contravariant over <rs-sym>T</rs-sym> because <code><rs-kwd>fn</rs-kwd>(<rs-sym>A</rs-sym>) &lt;: <rs-kwd>fn</rs-kwd>(<rs-sym>B</rs-sym>)</code> if <code><rs-sym>B</rs-sym> &lt;: <rs-sym>A</rs-sym></code>. With contravariance, the subtyping relationship is inverted. <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>) &rarr; <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>).</p>
+    <p>We say <rs-kwd>fn</rs-kwd>(<rs-sym>T</rs-sym>) is "contravariant" over <rs-sym>T</rs-sym> because <code><rs-kwd>fn</rs-kwd>(<rs-sym>A</rs-sym>) &lt;: <rs-kwd>fn</rs-kwd>(<rs-sym>B</rs-sym>)</code> if <code><rs-sym>B</rs-sym> &lt;: <rs-sym>A</rs-sym></code>. With contravariance, the subtyping relationship is inverted. <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>) &rarr; <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>).</p>
 
     <x-block><em>"Why is this important to Rust?"</em></x-block>
 
