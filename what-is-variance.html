@@ -307,14 +307,14 @@
 
     <p>I asked this myself, and found <a contenteditable=false href="https://users.rust-lang.org/t/question-about-invariance-for-mut-t/71177/6">this person</a> asking the same question, but struggled to find a satisfactory answer.</p>
 
-    <p>When we read data, we accept lifetimes bigger than the one we asked for.</p>
+    <p>With immutable references, we accept lifetimes bigger than the one we asked for.</p>
 
     <pre><code><md-tag>```</md-tag>
 <rs-com>// I asked for a 'local but a 'static will do</rs-com>
 <rs-kwd>let</rs-kwd> <rs-sym>x</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = "" <rs-kwd>as</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym>;
 <md-tag>```</md-tag></code></pre>
 
-<p>When we write data, it seems ok to do this.</p>
+<p>With mutable references, it seems ok to do this.</p>
 
     <pre><code><md-tag>```</md-tag>
 <rs-kwd>let</rs-kwd> <rs-sym>short</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> &<rs-sym>String</rs-sym>::<rs-sym>new</rs-sym>();
