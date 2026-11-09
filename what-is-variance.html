@@ -128,6 +128,13 @@
 
     <p>I brought the markdown viewer to you!</p>
 
+    <p>Alternative resources:</p>
+
+    <ul>
+        <li><a contenteditable=false href="https://lifetime-variance.sunshowers.io">Lifetime variance in Rust</a></li>
+        <li><a contenteditable=false href="https://doc.rust-lang.org/nomicon/subtyping.html">Subtyping and Variance</a></li>
+    </ul>
+
     <h2 id="subtyping"><a contenteditable=false href="#subtyping">#</a> <span>Subtyping</span></h2>
 
     <p>Subtyping is when one type (like <rs-sym>Cat</rs-sym>) can be used anywhere another, more general type (like <rs-sym>Animal</rs-sym>) is expected.</p>
@@ -146,68 +153,77 @@
 
     <p>Type variance tells us what to do when a type is placed in a bigger type.</p>
 
-    <p>Can a <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; become a <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;? Maybe. A list of <rs-sym>Cat</rs-sym>s is basically just a list of <rs-sym>Animal</rs-sym>s. Can a <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) become a <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>)? Maybe not. <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) expects a <rs-sym>Cat</rs-sym>, lets not surprise it with any <rs-sym>Animal</rs-sym>.</p>
+    <p>Can a <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; be used as a <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;? Maybe. A list of <rs-sym>Cat</rs-sym>s is basically just a list of <rs-sym>Animal</rs-sym>s. Can a <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) be used as a <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>)? Maybe not. <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) expects a <rs-sym>Cat</rs-sym>, lets not surprise it with any <rs-sym>Animal</rs-sym>.</p>
 
-    <p>We say <rs-sym>List</rs-sym>&lt;<rs-sym>T</rs-sym>&gt; is "covariant" over <rs-sym>T</rs-sym> because <code><rs-sym>List</rs-sym>&lt;<rs-sym>A</rs-sym>&gt; &lt;: <rs-sym>List</rs-sym>&lt;<rs-sym>B</rs-sym>&gt;</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With covariance, the subtyping relationship "passes through". <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; &rarr; <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;.</p>
+    <p>We say <rs-sym>List</rs-sym>&lt;<rs-sym>T</rs-sym>&gt; is "covariant" over <rs-sym>T</rs-sym> because <code><rs-sym>List</rs-sym>&lt;<rs-sym>A</rs-sym>&gt; &lt;: <rs-sym>List</rs-sym>&lt;<rs-sym>B</rs-sym>&gt;</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With covariance, the subtyping relationship "passes through". <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; can become <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;.</p>
 
-    <p>We say <rs-kwd>fn</rs-kwd>(<rs-sym>T</rs-sym>) is "contravariant" over <rs-sym>T</rs-sym> because <code><rs-kwd>fn</rs-kwd>(<rs-sym>A</rs-sym>) &lt;: <rs-kwd>fn</rs-kwd>(<rs-sym>B</rs-sym>)</code> if <code><rs-sym>B</rs-sym> &lt;: <rs-sym>A</rs-sym></code>. With contravariance, the subtyping relationship is inverted. <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>) &rarr; <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>).</p>
+    <p>We say <rs-kwd>fn</rs-kwd>(<rs-sym>T</rs-sym>) is "contravariant" over <rs-sym>T</rs-sym> because <code><rs-kwd>fn</rs-kwd>(<rs-sym>A</rs-sym>) &lt;: <rs-kwd>fn</rs-kwd>(<rs-sym>B</rs-sym>)</code> if <code><rs-sym>B</rs-sym> &lt;: <rs-sym>A</rs-sym></code>. With contravariance, the subtyping relationship is inverted. <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>) can become <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>).</p>
 
     <x-block><em>"Why is this important to Rust?"</em></x-block>
 
     <p>Well, imaginary reader, read on.</p>
 
     <h2 id="variance"><a contenteditable=false href="#variance">#</a> <span>Variance</span></h2>
-
-    <p>We have a function that takes two string slices.</p>
-
-    <pre><code><md-tag>```</md-tag>
-<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;(<rs-sym>x</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>) {}
-<md-tag>```</md-tag></code></pre>
-
-    <p>and we call that function with a static string and a local string, using some fake syntax I made up for illustrative purposes.</p>
+    
+    <p>We turn a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> into a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym>, using some fake syntax I made up for illustrative purposes.</p>
 
     <pre><code><md-tag>```</md-tag>
-<rs-kwd>let</rs-kwd> <rs-sym>long</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = "";
-<rs-kwd>let</rs-kwd> <rs-sym>short</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = &<rs-sym>String</rs-sym>::<rs-sym>new</rs-sym>();
+<rs-lt>'local</rs-lt>: {
+    <rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = "";
+    <rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = <rs-sym>foo</rs-sym>;
 
-<rs-sym>foo</rs-sym>(<rs-sym>long</rs-sym>, <rs-sym>short</rs-sym>);
+    <rs-com>// bar needs to live for at least this scope</rs-com>
+}
 <md-tag>```</md-tag></code></pre>
 
-    <p>When resolving the lifetime <rs-lt>'a</rs-lt>, a naive borrow checker would see that <rs-lt>'static</rs-lt> != <rs-lt>'local</rs-lt> and refuse to compile.</p>
+    <p>When assigning <rs-sym>bar</rs-sym></p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = <rs-sym>foo</rs-sym>;
+<md-tag>```</md-tag></code></pre>
+
+    <p>A naive borrow checker would see that <code><rs-lt>'static</rs-lt> != <rs-lt>'local</rs-lt></code> and refuse to compile.</p>
 
     <p>But this is valid code! We'd like the borrow checker to realize that a <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> can fit in places where a <code>&<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym></code> is required.</p>
 
     <h2 id="covariance"><a contenteditable=false href="#covariance">#</a> <span>Covariance</span></h2>
 
     <p>When a lifetime can shrink to fit. <rs-lt>'long</rs-lt> &lt;: <rs-lt>'short</rs-lt></p>
+    
     <pre><code><md-tag>```</md-tag>
-<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;(<rs-sym>x</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>) {}
-<rs-sym>foo</rs-sym>(<rs-sym>long</rs-sym>, <rs-sym>short</rs-sym>);
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = "";
+<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = <rs-sym>foo</rs-sym>;
 <md-tag>```</md-tag></code></pre>
 
-    <p>Because <rs-lt>'static</rs-lt> outlives <rs-lt>'local</rs-lt>, <rs-lt>'static</rs-lt> can be put in places where <rs-lt>'local</rs-lt> is expected. That means <rs-lt>'static</rs-lt> &lt;: <rs-lt>'local</rs-lt>.</p>
+    <p>Because <rs-lt>'static</rs-lt> outlives <rs-lt>'local</rs-lt>, <rs-lt>'static</rs-lt> should fit in places where <rs-lt>'local</rs-lt> is expected. <code><rs-lt>'static</rs-lt> &lt;: <rs-lt>'local</rs-lt></code></p>
 
-    <p>If a lifetime is a subtype of another lifetime, it's safe to shrink it.</p>
+    <p>A &<rs-lt>'static</rs-lt> <rs-sym>T</rs-sym> can become a &<rs-lt>'local</rs-lt> <rs-sym>T</rs-sym> because <code>&<rs-lt>'static</rs-lt> <rs-sym>T</rs-sym> &lt;: &<rs-lt>'local</rs-lt> <rs-sym>T</rs-sym></code>.</p>
 
-    <p>In this example, we're assuming <rs-lt>'static</rs-lt> &lt;: <rs-lt>'local</rs-lt> implies &<rs-lt>'static</rs-lt> <rs-sym>T</rs-sym> &lt;: &<rs-lt>'local</rs-lt> <rs-sym>T</rs-sym>, which happens to be true for &<rs-sym>T</rs-sym> but isn't always the case.</p>
+    <p>We assume <code><rs-lt>'static</rs-lt> &lt;: <rs-lt>'local</rs-lt></code> implies <code>&<rs-lt>'static</rs-lt> <rs-sym>T</rs-sym> &lt;: &<rs-lt>'local</rs-lt> <rs-sym>T</rs-sym></code>, which happens to be true for &<rs-sym>T</rs-sym> but isn't always the case.</p>
 
     <h2 id="invariance"><a contenteditable=false href="#invariance">#</a> <span>Invariance</span></h2>
 
     <p>When a lifetime cannot change.</p>
 
     <pre><code><md-tag>```</md-tag>
-<rs-kwd>fn</rs-kwd> <rs-sym>foo</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;(<rs-sym>x</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>) {
-    *<rs-sym>a</rs-sym> = <rs-sym>b</rs-sym>;
-}
-<rs-com>// Oh no! Setting a 'static to a 'local!</rs-com>
-<rs-sym>foo</rs-sym>(&<rs-kwd>mut</rs-kwd> <rs-sym>long</rs-sym>, <rs-sym>short</rs-sym>)
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> "";
+<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = <rs-sym>foo</rs-sym>;
+
+<rs-com>// Oh no! Setting a 'static str to a 'local str!</rs-com>
+*<rs-sym>bar</rs-sym> = &<rs-sym>String</rs-sym>::<rs-sym>new</rs-sym>();
 <md-tag>```</md-tag></code></pre>
 
-    <p><rs-sym>long</rs-sym> is supposed to live for <rs-lt>'static</rs-lt>, but we set it to a string that only lives for <rs-lt>'local</rs-lt>! We want the compiler to reject this.</p>
+    <p><rs-sym>foo</rs-sym> is supposed to live for <rs-lt>'static</rs-lt>, but we set it to a string that only lives for <rs-lt>'local</rs-lt>! We want the compiler to reject this.</p>
 
-    <p>We want to say "when using &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym>, the type of <rs-sym>T</rs-sym> can't change.". This is called invariance. We say &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is invariant over <rs-sym>T</rs-sym>.</p>
+    <p>When using &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym>, the type of <rs-sym>T</rs-sym> can't change. We say &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is "invariant" over <rs-sym>T</rs-sym>.</p>
 
-    <p>In our code example, <code>&<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> is invariant over <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code>. The type of <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> is not allowed to shrink to a <code>&<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym></code>, and the compiler successfully rejects the code.</p>
+    <p>When assigning <rs-sym>bar</rs-sym></p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = <rs-sym>foo</rs-sym>;
+<md-tag>```</md-tag></code></pre>
+
+    <p><code>&<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> is invariant over <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code>. The type of <code>&<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym></code> is not allowed to become a <code>&<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym></code>, and the compiler successfully rejects the code.</p>
 
     <x-nb>
         <x-nb-title>Borrows are generic</x-nb-title>
@@ -222,18 +238,6 @@
             &<rs-lt>'a</rs-lt> <rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is covariant over <rs-lt>'a</rs-lt> but invariant over <rs-sym>T</rs-sym>. In other words, <rs-sym>'a</rs-sym> can change but <rs-sym>T</rs-sym> can't.
         </p>
     </x-nb>
-
-    <p>Is this counter-example valid Rust?</p>
-
-    <pre><code><md-tag>```</md-tag>
-<rs-com>// swap `long` and `short`</rs-com>
-<rs-sym>foo</rs-sym>(&<rs-kwd>mut</rs-kwd> <rs-sym>short</rs-sym>, <rs-sym>long</rs-sym>)
-<md-tag>```</md-tag></code></pre>
-
-    <details>
-        <summary contenteditable=false>Answer</summary>
-        Yes, it is! Even though <rs-sym>short</rs-sym> is behind an invariant reference (&<rs-kwd>mut</rs-kwd>), <rs-sym>long</rs-sym> is behind a covariant reference (&). The covariant <rs-lt>'static</rs-lt> <rs-sym>long</rs-sym> can shrink to fit the invariant <rs-lt>'local</rs-lt> <rs-sym>short</rs-sym>.
-    </details>
 
     <h2 id="contravariance"><a contenteditable=false href="#contravariance">#</a> <span>Contravariance</span></h2>
 
@@ -305,7 +309,7 @@
 
     <h2 id="why is &'a mut T not contravariant over T"><a contenteditable=false href="#why is &'a mut T not contravariant over T">#</a> <span>Why is &<rs-lt>'a</rs-lt> <rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> not contravariant over <rs-sym>T</rs-sym>?</span></h2>
 
-    <p>I asked this myself, and found <a contenteditable=false href="https://users.rust-lang.org/t/question-about-invariance-for-mut-t/71177/6">this person</a> asking the same question, but struggled to find a satisfactory answer.</p>
+    <p>I asked this myself, and found <a contenteditable=false href="https://users.rust-lang.org/t/question-about-invariance-for-mut-t/71177/6">this person</a> asking the same question.</p>
 
     <p>With immutable references, we accept lifetimes bigger than the one we asked for.</p>
 
