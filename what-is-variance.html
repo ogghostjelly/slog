@@ -155,9 +155,9 @@
 
     <p>Can a <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; be used as a <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;? Maybe. A list of <rs-sym>Cat</rs-sym>s is basically just a list of <rs-sym>Animal</rs-sym>s. Can a <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) be used as a <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>)? Maybe not. <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>) expects a <rs-sym>Cat</rs-sym>, lets not surprise it with any <rs-sym>Animal</rs-sym>.</p>
 
-    <p>We say <rs-sym>List</rs-sym>&lt;<rs-sym>T</rs-sym>&gt; is "covariant" over <rs-sym>T</rs-sym> because <code><rs-sym>List</rs-sym>&lt;<rs-sym>A</rs-sym>&gt; &lt;: <rs-sym>List</rs-sym>&lt;<rs-sym>B</rs-sym>&gt;</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With covariance, the subtyping relationship "passes through". <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; can become <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;.</p>
+    <p>We say <rs-sym>List</rs-sym>&lt;<rs-sym>T</rs-sym>&gt; is "covariant" over <rs-sym>T</rs-sym> because <code><rs-sym>List</rs-sym>&lt;<rs-sym>A</rs-sym>&gt; &lt;: <rs-sym>List</rs-sym>&lt;<rs-sym>B</rs-sym>&gt;</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With covariance, the subtyping relationship "passes through". <rs-sym>List</rs-sym>&lt;<rs-sym>Cat</rs-sym>&gt; can generalize to a <rs-sym>List</rs-sym>&lt;<rs-sym>Animal</rs-sym>&gt;.</p>
 
-    <p>We say <rs-kwd>fn</rs-kwd>(<rs-sym>T</rs-sym>) is "contravariant" over <rs-sym>T</rs-sym> because <code><rs-kwd>fn</rs-kwd>(<rs-sym>A</rs-sym>) &lt;: <rs-kwd>fn</rs-kwd>(<rs-sym>B</rs-sym>)</code> if <code><rs-sym>B</rs-sym> &lt;: <rs-sym>A</rs-sym></code>. With contravariance, the subtyping relationship is inverted. <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>) can become <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>).</p>
+    <p>We say <rs-kwd>fn</rs-kwd>(<rs-sym>T</rs-sym>) is "contravariant" over <rs-sym>T</rs-sym> because <code><rs-kwd>fn</rs-kwd>(<rs-sym>B</rs-sym>) &lt;: <rs-kwd>fn</rs-kwd>(<rs-sym>A</rs-sym>)</code> if <code><rs-sym>A</rs-sym> &lt;: <rs-sym>B</rs-sym></code>. With contravariance, the subtyping relationship is inverted. <rs-kwd>fn</rs-kwd>(<rs-sym>Animal</rs-sym>) can specialize to a <rs-kwd>fn</rs-kwd>(<rs-sym>Cat</rs-sym>).</p>
 
     <x-block><em>"Why is this important to Rust?"</em></x-block>
 
@@ -239,6 +239,24 @@
         </p>
     </x-nb>
 
+    <p>Is the following code valid Rust?</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> "";
+<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> &<rs-sym>String</rs-sym>::<rs-sym>new</rs-sym>();
+
+*<rs-sym>bar</rs-sym> = *<rs-sym>foo</rs-sym>;
+<md-tag>```</md-tag></code></pre>
+    
+    <details>
+        <summary contenteditable=false>Answer</summary>
+        <p>For this to be valid, either *<rs-sym>foo</rs-sym> has to be covariant to shrink to *<rs-sym>bar</rs-sym>, or *<rs-sym>bar</rs-sym> has to be contravariant to grow to *<rs-sym>foo</rs-sym>.</p>
+
+        <p>In this case, *<rs-sym>foo</rs-sym> is covariant and *<rs-sym>bar</rs-sym> is invariant.</p>
+
+        <p>When <rs-sym>foo</rs-sym> is dereferenced it becomes a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> which shrinks to a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym>. Once the types match, we can assign *<rs-sym>bar</rs-sym> to *<rs-sym>foo</rs-sym>;</p>
+    </details>
+
     <h2 id="contravariance"><a contenteditable=false href="#contravariance">#</a> <span>Contravariance</span></h2>
 
     <p>When a lifetime can grow to fit. <rs-sym>Fn</rs-sym>(<rs-lt>'short</rs-lt>) &lt;: <rs-sym>Fn</rs-sym>(<rs-lt>'long</rs-lt>)</p>
@@ -250,7 +268,7 @@
 <rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: <rs-kwd>fn</rs-kwd>(<rs-sym>x</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym>) = <rs-sym>bar</rs-sym>;
 <md-tag>```</md-tag></code></pre>
 
-    <p>If bar can handle a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> then it can handle a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym>.</p>
+    <p>If <rs-sym>bar</rs-sym> can handle a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> then it can handle a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym>.</p>
 
     <x-nb>
         <p><rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) -> <rs-sym>U</rs-sym> is contravariant over <rs-sym>T</rs-sym> and covariant over <rs-sym>U</rs-sym></p>
@@ -266,9 +284,66 @@
 
     <p>In &<rs-kwd>mut</rs-kwd> <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) what is the variance of <rs-sym>T</rs-sym>? Well, &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is invariant over <rs-sym>T</rs-sym>, invariance is 0 and anything times 0 is 0, so &<rs-kwd>mut</rs-kwd> <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) is invariant over <rs-sym>T</rs-sym>.</p>
 
+    <h2 id="variance-in-structs"><a contenteditable=false href="#variance-in-structs">#</a> <span>Variance In Structs</span></h2>
+
+    <p>To find the variance of a struct. We need to look at its fields.</p>
+
+    <p>If all the fields are covariant it is covariant.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-com>// MyStruct&lt;'a&gt; is covariant over 'a</rs-com>
+<rs-kwd>struct</rs-kwd> <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; {
+    <rs-sym>x</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>,  <rs-com>// covariant over 'a</rs-com>
+    <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>bool</rs-sym>, <rs-com>// covariant over 'a</rs-com>
+}
+
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'local</rs-lt>&gt; = <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'static</rs-lt>&gt; { <rs-com>...</rs-com> };
+<md-tag>```</md-tag></code></pre>
+
+    <p>If all the fields are contravariant it is contravariant.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-com>// MyStruct&lt;'a&gt; is contravariant over 'a</rs-com>
+<rs-kwd>struct</rs-kwd> <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; {
+    <rs-sym>x</rs-sym>: <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>),  <rs-com>// contravariant over 'a</rs-com>
+    <rs-sym>y</rs-sym>: <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> <rs-sym>bool</rs-sym>), <rs-com>// contravariant over 'a</rs-com>
+}
+
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'static</rs-lt>&gt; = <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'local</rs-lt>&gt; { <rs-com>...</rs-com> };
+<md-tag>```</md-tag></code></pre>
+
+    <p>If any field is invariant it is invariant.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-com>// MyStruct&lt;'a&gt; is invariant over 'a</rs-com>
+<rs-kwd>struct</rs-kwd> <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; {
+    <rs-sym>x</rs-sym>: *<rs-kwd>mut</rs-kwd> &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>, <rs-com>// invariant over 'a</rs-com>
+    <rs-sym>y</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>bool</rs-sym>,     <rs-com>// covariant over 'a</rs-com>
+    <rs-sym>z</rs-sym>: <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> <rs-sym>u32</rs-sym>),  <rs-com>// contravariant over 'a</rs-com>
+}
+
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'local</rs-lt>&gt; = <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'local</rs-lt>&gt; { <rs-com>...</rs-com> };
+<md-tag>```</md-tag></code></pre>
+
+    <p>If the fields have conflicting variance it is invariant.</p>
+
+    <pre><code><md-tag>```</md-tag>
+<rs-com>// MyStruct&lt;'a&gt; is invariant over 'a</rs-com>
+<rs-kwd>struct</rs-kwd> <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; {
+    <rs-sym>x</rs-sym>: &<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>,     <rs-com>// covariant over 'a</rs-com>
+    <rs-sym>y</rs-sym>: <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> <rs-sym>str</rs-sym>), <rs-com>// contravariant over 'a</rs-com>
+}
+
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'local</rs-lt>&gt; = <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'local</rs-lt>&gt; { <rs-com>...</rs-com> };
+<md-tag>```</md-tag></code></pre>
+
+    <x-nb>
+        <p>This is because covariance requires <code><rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt; &lt;: <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'b</rs-lt>&gt;</code> and contravariance requires <code><rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'b</rs-lt>&gt; &lt;: <rs-sym>MyStruct</rs-sym>&lt;<rs-lt>'a</rs-lt>&gt;</code> which can only be satisfied by invariance.</p>
+    </x-nb>
+
     <h2 id="wtf? fn(&'a ()) -> &'a ()"><a contenteditable=false href="#wtf? fn(&'a ()) -> &'a ()">#</a> <span>WTF? <rs-kwd>fn</rs-kwd>(&<rs-lt>'a</rs-lt> ()) -&gt; &<rs-lt>'a</rs-lt> ()</span></h2>
 
-    <p>This ones a bit obscure, I've only ever seen this in <rs-sym>std</rs-sym>::<rs-sym>task</rs-sym>::<rs-sym>Context</rs-sym> but I feel the need to explain it anyway.</p>
+    <p>I've only ever seen this in <rs-sym>std</rs-sym>::<rs-sym>task</rs-sym>::<rs-sym>Context</rs-sym> but I feel the need to explain it anyway.</p>
 
     <p>If we have the type</p>
     <pre><code><md-tag>```</md-tag>
@@ -336,6 +411,12 @@
 <rs-com>// uh oh! turn a 'local into a 'static</rs-com>
 <rs-kwd>let</rs-kwd> <rs-sym>oops</rs-sym>: &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = *<rs-sym>long</rs-sym>;
 <md-tag>```</md-tag></code></pre>
+
+    <p>&<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> doesn't let you read bigger lifetimes than the value it holds so it cannot be contravariant.</p>
+
+    <p>&<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> doesn't let you write smaller lifetimes than the value it holds so it cannot be covariant.</p>
+
+    <p>It must be invariant.</p>
 
     <p>Mutability is generally invariant, this includes <a contenteditable=false href="https://doc.rust-lang.org/stable/core/cell/struct.UnsafeCell.html">UnsafeCell</a> and friends.</p>
 
