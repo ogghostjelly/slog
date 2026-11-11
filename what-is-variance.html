@@ -229,12 +229,12 @@
         <x-nb-title>Borrows are generic</x-nb-title>
 
         <p>
-            &<rs-sym>T</rs-sym> has two generic parameters, imagine it as <rs-sym>Borrow</rs-sym>&lt;<rs-lt>'a</rs-lt>, <rs-sym>T</rs-sym>&gt;:<br>
+            &<rs-lt>'a</rs-lt> <rs-sym>T</rs-sym> has two generic parameters, imagine it as <rs-sym>Borrow</rs-sym>&lt;<rs-lt>'a</rs-lt>, <rs-sym>T</rs-sym>&gt;:<br>
             &<rs-lt>'a</rs-lt> <rs-sym>T</rs-sym> is covariant over <rs-lt>'a</rs-lt> and covariant over <rs-sym>T</rs-sym>. In other words, <rs-lt>'a</rs-lt> can change and <rs-sym>T</rs-sym> can change.
         </p>
 
         <p>
-            &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> has two generic parameters, imagine it as <rs-sym>BorrowMut</rs-sym>&lt;<rs-lt>'a</rs-lt>, <rs-sym>T</rs-sym>&gt;:<br>
+            &<rs-lt>'a</rs-lt> <rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> has two generic parameters, imagine it as <rs-sym>BorrowMut</rs-sym>&lt;<rs-lt>'a</rs-lt>, <rs-sym>T</rs-sym>&gt;:<br>
             &<rs-lt>'a</rs-lt> <rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is covariant over <rs-lt>'a</rs-lt> but invariant over <rs-sym>T</rs-sym>. In other words, <rs-sym>'a</rs-sym> can change but <rs-sym>T</rs-sym> can't.
         </p>
     </x-nb>
@@ -242,19 +242,17 @@
     <p>Is the following code valid Rust?</p>
 
     <pre><code><md-tag>```</md-tag>
-<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> "";
-<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> &<rs-sym>String</rs-sym>::<rs-sym>new</rs-sym>();
+<rs-kwd>let</rs-kwd> <rs-sym>foo</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> <rs-com>...</rs-com>;
+<rs-kwd>let</rs-kwd> <rs-sym>bar</rs-sym>: &<rs-kwd>mut</rs-kwd> &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym> = &<rs-kwd>mut</rs-kwd> <rs-com>...</rs-com>;
 
 *<rs-sym>bar</rs-sym> = *<rs-sym>foo</rs-sym>;
 <md-tag>```</md-tag></code></pre>
     
     <details>
         <summary contenteditable=false>Answer</summary>
-        <p>For this to be valid, either *<rs-sym>foo</rs-sym> has to be covariant to shrink to *<rs-sym>bar</rs-sym>, or *<rs-sym>bar</rs-sym> has to be contravariant to grow to *<rs-sym>foo</rs-sym>.</p>
+        <p>For this to be valid, either *<rs-sym>foo</rs-sym> has to shrink to *<rs-sym>bar</rs-sym> (covariant), or *<rs-sym>bar</rs-sym> has to grow to *<rs-sym>foo</rs-sym> (contravariant).</p>
 
-        <p>In this case, *<rs-sym>foo</rs-sym> is covariant and *<rs-sym>bar</rs-sym> is invariant.</p>
-
-        <p>When <rs-sym>foo</rs-sym> is dereferenced it becomes a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> which shrinks to a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym>. Once the types match, we can assign *<rs-sym>bar</rs-sym> to *<rs-sym>foo</rs-sym>;</p>
+        <p>When <rs-sym>foo</rs-sym> is dereferenced it becomes a &<rs-lt>'static</rs-lt> <rs-sym>str</rs-sym> which shrinks to a &<rs-lt>'local</rs-lt> <rs-sym>str</rs-sym>. Once the types match, we can assign *<rs-sym>bar</rs-sym> to *<rs-sym>foo</rs-sym>.</p>
     </details>
 
     <h2 id="contravariance"><a contenteditable=false href="#contravariance">#</a> <span>Contravariance</span></h2>
@@ -282,7 +280,7 @@
 
     <p>In <rs-sym>Fn</rs-sym>(<rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>)) what is the variance of <rs-sym>T</rs-sym>? <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) is contravariant over <rs-sym>T</rs-sym> and <rs-sym>Fn</rs-sym>(<rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>)) is contravariant again over <rs-sym>T</rs-sym>. <code>-1 * -1 = 1</code>, two negatives make a positive, so <rs-sym>Fn</rs-sym>(<rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>)) is covariant over <rs-sym>T</rs-sym>.</p>
 
-    <p>In &<rs-kwd>mut</rs-kwd> <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) what is the variance of <rs-sym>T</rs-sym>? Well, &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is invariant over <rs-sym>T</rs-sym>, invariance is 0 and anything times 0 is 0, so &<rs-kwd>mut</rs-kwd> <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) is invariant over <rs-sym>T</rs-sym>.</p>
+    <p>In &<rs-kwd>mut</rs-kwd> <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) what is the variance of <rs-sym>T</rs-sym>? Well, &<rs-kwd>mut</rs-kwd> <rs-sym>T</rs-sym> is invariant over <rs-sym>T</rs-sym>, anything multiplied by 0 is 0, so &<rs-kwd>mut</rs-kwd> <rs-sym>Fn</rs-sym>(<rs-sym>T</rs-sym>) is invariant over <rs-sym>T</rs-sym>.</p>
 
     <h2 id="variance-in-structs"><a contenteditable=false href="#variance-in-structs">#</a> <span>Variance In Structs</span></h2>
 
